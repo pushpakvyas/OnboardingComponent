@@ -389,7 +389,7 @@ const DocumentManagementSystem = () => {
     );
   };
 
-  // Download document (simplified)
+  // Download document
   const handleDownloadDocument = async (doc) => {
     if (!doc.pages || doc.pages.length === 0) {
       alert("No pages to download");
@@ -397,56 +397,171 @@ const DocumentManagementSystem = () => {
     }
 
     try {
-      // Create a new PDF document
       const pdfDoc = await PDFDocument.create();
 
-      // Add each page
       for (const page of doc.pages) {
-        // Convert base64 image to bytes
-        const imageBytes = await fetch(page.image).then((res) =>
-          res.arrayBuffer()
-        );
+        const pageWidth = page.width || 816;
+        const pageHeight = page.height || 1056;
+        const tempCanvas = document.createElement("canvas");
+        const ctx = tempCanvas.getContext("2d");
 
-        // Embed the image
-        let image;
-        if (page.image.includes("image/png")) {
-          image = await pdfDoc.embedPng(imageBytes);
-        } else {
-          image = await pdfDoc.embedJpg(imageBytes);
+        tempCanvas.width = pageWidth;
+        tempCanvas.height = pageHeight;
+
+        // Draw the base background image
+        const bgImage = new Image();
+        bgImage.src = page.image;
+        await new Promise((resolve) => (bgImage.onload = resolve));
+        ctx.drawImage(bgImage, 0, 0, pageWidth, pageHeight);
+
+        // Draw dropped fields overlay from doc.droppedFields
+        const pageFields =
+          (doc.droppedFields && doc.droppedFields[page.number]) || [];
+
+        for (const field of pageFields) {
+          ctx.font = `${field.fontSize || 14}px ${field.fontFamily || "Arial"}`;
+          ctx.fillStyle = field.fontColor || "#000";
+
+          const labelText = field.showLabel !== false ? field.label || "" : "";
+          const fontSize = field.fontSize || 14;
+
+          // The field.x and field.y represent where the user dropped the field container
+          // We need to render it exactly as it appears in the preview
+          let currentY = field.y;
+
+          // Draw label if it's on top
+          if (
+            labelText &&
+            field.showLabel !== false &&
+            field.labelPosition !== "left"
+          ) {
+            ctx.fillText(labelText, field.x, currentY + fontSize);
+            currentY += fontSize + 4; // Move down for the field input
+          }
+
+          // Draw label if it's on left
+          if (
+            labelText &&
+            field.showLabel !== false &&
+            field.labelPosition === "left"
+          ) {
+            const labelWidth = ctx.measureText(labelText + ": ").width;
+            ctx.fillText(labelText + ": ", field.x, currentY + fontSize + 4);
+
+            // Adjust x position for the field to be after the label
+            const fieldX = field.x + labelWidth + 4;
+            const fieldY = currentY;
+
+            // Draw field based on type
+            if (
+              ["text", "name", "email", "phone", "date", "signature"].includes(
+                field.type
+              )
+            ) {
+              ctx.strokeStyle = "#000";
+              ctx.lineWidth = 1;
+              ctx.strokeRect(fieldX, fieldY, field.width || 200, 24);
+            } else if (field.type === "checkbox") {
+              ctx.strokeRect(fieldX, fieldY + 4, 16, 16);
+            } else if (field.type === "select") {
+              ctx.strokeRect(fieldX, fieldY, field.width || 200, 24);
+              ctx.fillStyle = "#000";
+              ctx.beginPath();
+              ctx.moveTo(fieldX + (field.width || 200) - 15, fieldY + 10);
+              ctx.lineTo(fieldX + (field.width || 200) - 5, fieldY + 10);
+              ctx.lineTo(fieldX + (field.width || 200) - 10, fieldY + 16);
+              ctx.closePath();
+              ctx.fill();
+            } else if (field.type === "image" && field.imageSrc) {
+              const img = new Image();
+              img.src = field.imageSrc;
+              await new Promise((resolve) => {
+                img.onload = () => {
+                  ctx.drawImage(
+                    img,
+                    fieldX,
+                    fieldY,
+                    field.width || 100,
+                    field.height || 100
+                  );
+                  resolve();
+                };
+              });
+            }
+            continue;
+          }
+
+          const fieldY = currentY;
+
+          if (
+            ["text", "name", "email", "phone", "date", "signature"].includes(
+              field.type
+            )
+          ) {
+            ctx.strokeStyle = "#000";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(field.x, fieldY, field.width || 200, 24);
+          } else if (field.type === "checkbox") {
+            ctx.strokeRect(field.x, fieldY, 16, 16);
+          } else if (field.type === "select") {
+            ctx.strokeRect(field.x, fieldY, field.width || 200, 24);
+            ctx.fillStyle = "#000";
+            ctx.beginPath();
+            ctx.moveTo(field.x + (field.width || 200) - 15, fieldY + 10);
+            ctx.lineTo(field.x + (field.width || 200) - 5, fieldY + 10);
+            ctx.lineTo(field.x + (field.width || 200) - 10, fieldY + 16);
+            ctx.closePath();
+            ctx.fill();
+          } else if (field.type === "image" && field.imageSrc) {
+            const img = new Image();
+            img.src = field.imageSrc;
+            await new Promise((resolve) => {
+              img.onload = () => {
+                ctx.drawImage(
+                  img,
+                  field.x,
+                  fieldY,
+                  field.width || 100,
+                  field.height || 100
+                );
+                resolve();
+              };
+            });
+          }
         }
 
-        // Add a page with A4 dimensions
-        const pdfPage = pdfDoc.addPage([A4_WIDTH, A4_HEIGHT]);
+        // Convert composite canvas to image for PDF page
+        const pageImage = tempCanvas.toDataURL("image/png");
+        const imgBytes = await fetch(pageImage).then((r) => r.arrayBuffer());
+        const embeddedImage = await pdfDoc.embedPng(imgBytes);
 
-        // Draw the image
-        pdfPage.drawImage(image, {
+        const pdfPage = pdfDoc.addPage([pageWidth, pageHeight]);
+        pdfPage.drawImage(embeddedImage, {
           x: 0,
           y: 0,
-          width: A4_WIDTH,
-          height: A4_HEIGHT,
+          width: pageWidth,
+          height: pageHeight,
         });
       }
 
-      // Serialize the PDF to bytes
+      // Download PDF
       const pdfBytes = await pdfDoc.save();
-
-      // Create a blob and download
       const blob = new Blob([pdfBytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${doc.documentName}.pdf`;
+      link.download = `${doc.documentName.replace(
+        /\s+/g,
+        "_"
+      )}_${Date.now().toString()}.pdf`;
+
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error creating PDF:", error);
-      alert("Failed to download PDF. Falling back to image download.");
-
-      // Fallback: download first page as image
-      const link = document.createElement("a");
-      link.href = doc.pages[0].image;
-      link.download = `${doc.documentName}.png`;
-      link.click();
+      alert("Failed to generate full PDF, please check console for details");
     }
   };
 
@@ -684,134 +799,133 @@ const DocumentManagementSystem = () => {
   );
 
   // Render field display
-  const renderFieldDisplay = (field) => {
-    const isSelected = selectedField === field.id;
+const renderFieldDisplay = (field) => {
+  const isSelected = selectedField === field.id;
 
-    return (
-      <motion.div
-        key={field.id}
-        className={`absolute ${
-          isSelected
-            ? "ring-2 ring-blue-500"
-            : "hover:ring-2 hover:ring-gray-300"
-        } rounded`}
-        style={{ left: field.x, top: field.y, zIndex: isSelected ? 40 : 20 }}
-        onMouseDown={(e) => {
-          if (!e.target.classList.contains("delete-btn")) {
-            handleFieldMouseDown(e, field);
-          }
-        }}
-        onClick={(e) => {
-          e.stopPropagation();
-          if (!e.target.classList.contains("delete-btn")) {
-            setSelectedField(field.id);
-          }
-        }}
-      >
-        <div className="flex gap-1 items-start">
-          <div
-            className="drag-handle cursor-move text-lg select-none"
-            title="Drag to move"
-          >
-            ⠿
-          </div>
-          <div className="bg-transparent rounded p-2 min-w-max group relative">
-            {field.showLabel !== false && field.labelPosition === "top" && (
-              <div className="text-xs font-semibold mb-1">
+  return (
+    <motion.div
+      key={field.id}
+      className={`absolute ${
+        isSelected
+          ? "ring-2 ring-blue-500"
+          : "hover:ring-2 hover:ring-gray-300"
+      } rounded`}
+      style={{ left: field.x, top: field.y, zIndex: isSelected ? 40 : 20 }}
+      onMouseDown={(e) => {
+        if (!e.target.classList.contains("delete-btn")) {
+          handleFieldMouseDown(e, field);
+        }
+      }}
+      onClick={(e) => {
+        e.stopPropagation();
+        if (!e.target.classList.contains("delete-btn")) {
+          setSelectedField(field.id);
+        }
+      }}
+    >
+      <div className="flex gap-1 items-start">
+        <div
+          className="drag-handle cursor-move text-lg select-none"
+          title="Drag to move"
+        >
+          ⠿
+        </div>
+        <div className="bg-transparent rounded p-2 min-w-max group relative">
+          {field.showLabel !== false && field.labelPosition === "top" && (
+            <div className="text-xs font-semibold mb-1">
+              {field.label}
+              {field.required && (
+                <span className="text-red-500 ml-0.5">*</span>
+              )}
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            {field.showLabel !== false && field.labelPosition === "left" && (
+              <div className="text-xs font-semibold whitespace-nowrap">
                 {field.label}
                 {field.required && (
                   <span className="text-red-500 ml-0.5">*</span>
                 )}
+                :
               </div>
             )}
-            <div className="flex items-center gap-2">
-              {field.showLabel !== false && field.labelPosition === "left" && (
-                <div className="text-xs font-semibold whitespace-nowrap">
-                  {field.label}
-                  {field.required && (
-                    <span className="text-red-500 ml-0.5">*</span>
+            <div>
+              {field.type === "checkbox" && (
+                <input type="checkbox" className="w-4 h-4" readOnly />
+              )}
+              {(field.type === "text" ||
+                field.type === "name" ||
+                field.type === "email" ||
+                field.type === "phone") && (
+                <input
+                  type="text"
+                  className="border rounded px-2 py-1 text-sm"
+                  style={{ width: field.width || 200 }}
+                  readOnly
+                />
+              )}
+              {field.type === "date" && (
+                <input
+                  type="date"
+                  className="border rounded px-2 py-1 text-sm"
+                  style={{ width: field.width || 200 }}
+                  readOnly
+                />
+              )}
+              {field.type === "select" && (
+                <select
+                  className="border rounded px-2 py-1 text-sm"
+                  style={{ width: field.width || 200 }}
+                >
+                  {(field.options || []).map((opt, i) => (
+                    <option key={i}>{opt}</option>
+                  ))}
+                </select>
+              )}
+              {field.type === "signature" && (
+                <input
+                  type="text"
+                  className="border rounded px-2 py-1 text-sm"
+                  style={{ width: field.width || 200, fontFamily: "cursive" }}
+                  readOnly
+                />
+              )}
+              {field.type === "image" && (
+                <div
+                  className="border rounded p-2 text-xs"
+                  style={{
+                    width: field.width || 150,
+                    height: field.height || 100,
+                  }}
+                >
+                  {field.imageSrc ? (
+                    <img
+                      src={field.imageSrc}
+                      alt={field.alt}
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    "No image"
                   )}
-                  :
                 </div>
               )}
-              <div>
-                {field.type === "checkbox" && (
-                  <input type="checkbox" className="w-4 h-4" readOnly />
-                )}
-                {(field.type === "text" ||
-                  field.type === "name" ||
-                  field.type === "email" ||
-                  field.type === "phone") && (
-                  <input
-                    type="text"
-                    className="border rounded px-2 py-1 text-sm"
-                    style={{ width: field.width || 200 }}
-                    readOnly
-                  />
-                )}
-                {field.type === "date" && (
-                  <input
-                    type="date"
-                    className="border rounded px-2 py-1 text-sm"
-                    style={{ width: field.width || 200 }}
-                    readOnly
-                  />
-                )}
-                {field.type === "select" && (
-                  <select
-                    className="border rounded px-2 py-1 text-sm"
-                    style={{ width: field.width || 200 }}
-                  >
-                    {(field.options || []).map((opt, i) => (
-                      <option key={i}>{opt}</option>
-                    ))}
-                  </select>
-                )}
-                {field.type === "signature" && (
-                  <input
-                    type="text"
-                    className="border rounded px-2 py-1 text-sm"
-                    style={{ width: field.width || 200, fontFamily: "cursive" }}
-                    readOnly
-                  />
-                )}
-                {field.type === "image" && (
-                  <div
-                    className="border rounded p-2 text-xs"
-                    style={{
-                      width: field.width || 150,
-                      height: field.height || 100,
-                    }}
-                  >
-                    {field.imageSrc ? (
-                      <img
-                        src={field.imageSrc}
-                        alt={field.alt}
-                        className="w-full h-full object-contain"
-                      />
-                    ) : (
-                      "No image"
-                    )}
-                  </div>
-                )}
-              </div>
             </div>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                handleDeleteField(field.id);
-              }}
-              className="delete-btn absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition flex items-center justify-center font-bold"
-            >
-              ×
-            </button>
           </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              handleDeleteField(field.id);
+            }}
+            className="delete-btn absolute -top-2 -right-2 w-5 h-5 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition flex items-center justify-center font-bold"
+          >
+            ×
+          </button>
         </div>
-      </motion.div>
-    );
-  };
-
+      </div>
+    </motion.div>
+  );
+};
   return (
     <div className="w-screen h-screen flex flex-col bg-gray-50">
       {/* Table View */}
