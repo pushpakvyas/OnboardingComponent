@@ -5,18 +5,19 @@ import { PDFDocument } from "pdf-lib";
 import {
   Eye,
   Edit2,
+  Edit3,
   Download,
   Copy,
-  Archive,
   Trash2,
-  Filter,
   Plus,
   X,
   ChevronLeft,
   ChevronRight,
+  Send,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 
-// A4 dimensions in pixels (at 96 DPI)
 const A4_WIDTH = 816;
 const A4_HEIGHT = 1056;
 
@@ -46,12 +47,12 @@ const DOCUMENT_CATEGORIES = [
 ];
 const DOCUMENT_TYPES = ["Contract", "Agreement", "Form", "Report", "Other"];
 
+// ---- Component Start ----
 const DocumentManagementSystem = () => {
-  // Main state
-  const [view, setView] = useState("table"); // table, editor, preview
+  const [view, setView] = useState("table");
 
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerStep, setDrawerStep] = useState("initial"); // initial, upload, workflow, editor
+  const [drawerStep, setDrawerStep] = useState("initial");
 
   // Table state
   const [currentPage, setCurrentPage] = useState(1);
@@ -89,6 +90,29 @@ const DocumentManagementSystem = () => {
   const [isDraggingExistingField, setIsDraggingExistingField] = useState(false);
   const [draggedExistingField, setDraggedExistingField] = useState(null);
 
+  const [currentUserRole, setCurrentUserRole] = useState("");
+  const [currentUserId, setCurrentUserId] = useState("");
+  const [selectedApplicant, setSelectedApplicant] = useState("");
+
+  // Load user field data from localStorage
+  const [userFieldData, setUserFieldData] = useState(() => {
+    try {
+      const saved = localStorage.getItem("userFieldData");
+      return saved ? JSON.parse(saved) : {};
+    } catch (err) {
+      console.error("Error parsing user field data:", err);
+      return {};
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("userFieldData", JSON.stringify(userFieldData));
+    } catch (err) {
+      console.error("Error saving user field data:", err);
+    }
+  }, [userFieldData]);
+
   const fileInputRef = useRef(null);
   const previewRef = useRef(null);
 
@@ -114,7 +138,7 @@ const DocumentManagementSystem = () => {
     localStorage.setItem("documentManagementData", JSON.stringify(data));
   }, [documents]);
 
-  // Process PDF
+  // ---- PDF and Word Processing ----
   const processPDF = async (file) => {
     const pdfjsLib = window["pdfjs-dist/build/pdf"];
     pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -149,7 +173,6 @@ const DocumentManagementSystem = () => {
     return pageImages;
   };
 
-  // Process Word
   const processWord = async (file) => {
     const arrayBuffer = await file.arrayBuffer();
     const result = await mammoth.convertToHtml({ arrayBuffer });
@@ -205,7 +228,7 @@ const DocumentManagementSystem = () => {
     return pageImages;
   };
 
-  // Handle file upload
+  // ---- Upload & Save ----
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -249,9 +272,7 @@ const DocumentManagementSystem = () => {
     }
   };
 
-  // Save document
   const saveDocument = (skipWorkflow = false, isEditorSave = false) => {
-    // Validation only if not from editor save
     if (!isEditorSave) {
       if (
         !documentForm.documentName ||
@@ -285,11 +306,9 @@ const DocumentManagementSystem = () => {
       const index = prev.findIndex((d) => d.id === docId);
       let updatedDocs;
       if (index !== -1) {
-        // Replace existing document
         updatedDocs = [...prev];
         updatedDocs[index] = newDoc;
       } else {
-        // Append new document if not found
         updatedDocs = [...prev, newDoc];
       }
 
@@ -304,11 +323,9 @@ const DocumentManagementSystem = () => {
     });
 
     setCurrentDocument(newDoc);
-    // After saving, switch to table view
     setView("table");
   };
 
-  // Reset drawer state
   const resetDrawerState = () => {
     setDrawerStep("initial");
     setDocumentForm({
@@ -326,7 +343,7 @@ const DocumentManagementSystem = () => {
     setSelectedField(null);
   };
 
-  // View document
+  // ---- Document Actions ----
   const handleViewDocument = (doc) => {
     setCurrentDocument(doc);
     setPages(doc.pages || []);
@@ -335,7 +352,6 @@ const DocumentManagementSystem = () => {
     setView("preview");
   };
 
-  // Edit document
   const handleEditDocument = (doc) => {
     setCurrentDocument(doc);
     setPages(doc.pages || []);
@@ -356,14 +372,20 @@ const DocumentManagementSystem = () => {
     setView("editor");
   };
 
-  // Delete document
   const handleDeleteDocument = (docId) => {
     if (window.confirm("Are you sure you want to delete this document?")) {
       setDocuments((prev) => prev.filter((doc) => doc.id !== docId));
+      setUserFieldData((prev) => {
+        const updated = { ...prev };
+        delete updated[docId];
+        return updated;
+      });
+      console.log(
+        `Document ${docId} and all associated user data deleted successfully`
+      );
     }
   };
 
-  // Clone document
   const handleCloneDocument = (doc) => {
     const clonedDoc = {
       ...doc,
@@ -375,7 +397,6 @@ const DocumentManagementSystem = () => {
     setDocuments((prev) => [...prev, clonedDoc]);
   };
 
-  // Archive document
   const handleArchiveDocument = (docId) => {
     setDocuments((prev) =>
       prev.map((doc) =>
@@ -389,7 +410,169 @@ const DocumentManagementSystem = () => {
     );
   };
 
-  // Download document (simplified)
+  // ---- Workflow Functions ----
+  const handleShareDocument = (doc) => {
+    const userId = prompt("Enter user email/name to share with:");
+    if (!userId || !userId.trim()) return;
+
+    const existingData = userFieldData[doc.id]?.[userId];
+    if (existingData && Object.keys(existingData).length > 0) {
+      if (
+        !window.confirm(
+          "This user already has data for this document. Create new entry?"
+        )
+      ) {
+        return;
+      }
+    }
+
+    setUserFieldData((prev) => ({
+      ...prev,
+      [doc.id]: {
+        ...prev[doc.id],
+        [userId]: {
+          status: "pending",
+          role: "applicant",
+          createdAt: new Date().toISOString(),
+        },
+      },
+    }));
+
+    setDocuments((prev) =>
+      prev.map((d) =>
+        d.id === doc.id
+          ? {
+              ...d,
+              sharedWith: [...(d.sharedWith || []), userId],
+            }
+          : d
+      )
+    );
+
+    alert(
+      `Document shared with ${userId}. They can now fill the applicant fields.`
+    );
+  };
+
+  const handleApplicantFill = (doc) => {
+    const userId = prompt("Enter your email/name:");
+    if (!userId || !userId.trim()) return;
+
+    setCurrentUserId(userId);
+    setCurrentUserRole("applicant");
+    setCurrentDocument(doc);
+    setPages(doc.pages || []);
+    setDroppedFields(doc.droppedFields || {});
+    setCurrentPageNum(1);
+    setView("applicant-fill");
+  };
+
+  const handleSaveApplicantData = () => {
+    if (!currentUserId || !currentDocument) return;
+
+    const missingFields = [];
+    Object.values(currentDocument.droppedFields || {})
+      .flat()
+      .filter((f) => f.role === "applicant" && f.required)
+      .forEach((field) => {
+        const value =
+          userFieldData[currentDocument.id]?.[currentUserId]?.[field.id];
+        if (!value || !value.toString().trim()) {
+          missingFields.push(field.label || "Unnamed Field");
+        }
+      });
+
+    if (missingFields.length > 0) {
+      alert(
+        `Please fill all required applicant fields:\n- ${missingFields.join(
+          "\n- "
+        )}`
+      );
+      return;
+    }
+
+    setUserFieldData((prev) => ({
+      ...prev,
+      [currentDocument.id]: {
+        ...prev[currentDocument.id],
+        [currentUserId]: {
+          ...prev[currentDocument.id]?.[currentUserId],
+          status: "submitted",
+          submittedAt: new Date().toISOString(),
+        },
+      },
+    }));
+
+    alert(
+      "Your data has been saved! The document is now ready for approver review."
+    );
+    setView("table");
+  };
+
+  const handleApproverReview = (doc) => {
+    const approverId = prompt("Enter your approver email/name:");
+    if (!approverId || !approverId.trim()) return;
+
+    const applicants = Object.keys(userFieldData[doc.id] || {}).filter(
+      (userId) => userFieldData[doc.id][userId].status === "submitted"
+    );
+
+    if (applicants.length === 0) {
+      alert("No applicants have submitted data for this document yet.");
+      return;
+    }
+
+    setCurrentUserId(approverId);
+    setCurrentUserRole("approver");
+    setSelectedApplicant(applicants[0]);
+    setCurrentDocument(doc);
+    setPages(doc.pages || []);
+    setDroppedFields(doc.droppedFields || {});
+    setCurrentPageNum(1);
+    setView("approver-review");
+  };
+
+  const handleApproverDecision = (decision) => {
+    if (!currentUserId || !currentDocument || !selectedApplicant) return;
+
+    const missingFields = [];
+    Object.values(currentDocument.droppedFields || {})
+      .flat()
+      .filter((f) => f.role === "approver" && f.required)
+      .forEach((field) => {
+        const value =
+          userFieldData[currentDocument.id]?.[selectedApplicant]?.[field.id];
+        if (!value || !value.toString().trim()) {
+          missingFields.push(field.label || "Unnamed Field");
+        }
+      });
+
+    if (missingFields.length > 0) {
+      alert(
+        `Please fill all required approver fields before ${decision}:\n- ${missingFields.join(
+          "\n- "
+        )}`
+      );
+      return;
+    }
+
+    setUserFieldData((prev) => ({
+      ...prev,
+      [currentDocument.id]: {
+        ...prev[currentDocument.id],
+        [selectedApplicant]: {
+          ...prev[currentDocument.id]?.[selectedApplicant],
+          status: decision,
+          approver: currentUserId,
+          approvedAt: new Date().toISOString(),
+        },
+      },
+    }));
+
+    alert(`Application ${decision}!`);
+    setView("table");
+  };
+
   const handleDownloadDocument = async (doc) => {
     if (!doc.pages || doc.pages.length === 0) {
       alert("No pages to download");
@@ -397,17 +580,13 @@ const DocumentManagementSystem = () => {
     }
 
     try {
-      // Create a new PDF document
       const pdfDoc = await PDFDocument.create();
 
-      // Add each page
       for (const page of doc.pages) {
-        // Convert base64 image to bytes
         const imageBytes = await fetch(page.image).then((res) =>
           res.arrayBuffer()
         );
 
-        // Embed the image
         let image;
         if (page.image.includes("image/png")) {
           image = await pdfDoc.embedPng(imageBytes);
@@ -415,10 +594,8 @@ const DocumentManagementSystem = () => {
           image = await pdfDoc.embedJpg(imageBytes);
         }
 
-        // Add a page with A4 dimensions
         const pdfPage = pdfDoc.addPage([A4_WIDTH, A4_HEIGHT]);
 
-        // Draw the image
         pdfPage.drawImage(image, {
           x: 0,
           y: 0,
@@ -427,10 +604,8 @@ const DocumentManagementSystem = () => {
         });
       }
 
-      // Serialize the PDF to bytes
       const pdfBytes = await pdfDoc.save();
 
-      // Create a blob and download
       const blob = new Blob([pdfBytes], { type: "application/pdf" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
@@ -442,7 +617,6 @@ const DocumentManagementSystem = () => {
       console.error("Error creating PDF:", error);
       alert("Failed to download PDF. Falling back to image download.");
 
-      // Fallback: download first page as image
       const link = document.createElement("a");
       link.href = doc.pages[0].image;
       link.download = `${doc.documentName}.png`;
@@ -450,7 +624,7 @@ const DocumentManagementSystem = () => {
     }
   };
 
-  // Drag and drop functions
+  // ---- Drag & Drop Fields ----
   const handleDragStart = (e, field) => {
     try {
       const transparent = document.createElement("canvas");
@@ -488,6 +662,7 @@ const DocumentManagementSystem = () => {
       fontFamily: "Arial",
       showLabel: true,
       labelPosition: "top",
+      role: "applicant",
       ...(draggedFieldType.type === "select" && {
         options: ["Option 1", "Option 2"],
         defaultOptionIndex: 0,
@@ -535,6 +710,7 @@ const DocumentManagementSystem = () => {
     setDraggedExistingField(null);
   };
 
+  // ---- Other Actions ----
   const handleProceedClick = () => {
     if (drawerStep === "upload") {
       if (
@@ -545,7 +721,6 @@ const DocumentManagementSystem = () => {
         alert("Please fill all required fields");
         return;
       }
-      // Move to workflow step after upload details are filled
       setDrawerStep("workflow");
     } else if (drawerStep === "workflow") {
       const isDesignMode =
@@ -554,8 +729,6 @@ const DocumentManagementSystem = () => {
         pages[0]?.width === A4_WIDTH;
 
       if (isDesignMode) {
-        // DESIGN MODE: Open editor WITHOUT saving to localStorage
-        // Set currentDocument to a new unsaved document object
         setCurrentDocument({
           id: Date.now().toString(),
           referenceId: `DOC-${Date.now()}`,
@@ -575,7 +748,6 @@ const DocumentManagementSystem = () => {
         setDrawerOpen(false);
         setView("editor");
       } else {
-        // UPLOAD MODE: Save document to localStorage and go to table view
         const docId = currentDocument?.id || Date.now().toString();
 
         const newDoc = {
@@ -639,7 +811,25 @@ const DocumentManagementSystem = () => {
     }));
   };
 
-  // Add new blank page
+  // Update user field value (for applicant/approver filling)
+  const handleUpdateUserFieldValue = (fieldId, value) => {
+    if (!currentDocument || !currentUserId) return;
+
+    const targetUser =
+      currentUserRole === "approver" ? selectedApplicant : currentUserId;
+
+    setUserFieldData((prev) => ({
+      ...prev,
+      [currentDocument.id]: {
+        ...prev[currentDocument.id],
+        [targetUser]: {
+          ...prev[currentDocument.id]?.[targetUser],
+          [fieldId]: value,
+        },
+      },
+    }));
+  };
+
   const addBlankPage = () => {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
@@ -658,7 +848,6 @@ const DocumentManagementSystem = () => {
     setPages((prev) => [...prev, newPage]);
   };
 
-  // Filter documents
   const filteredDocuments = documents.filter((doc) => {
     return (
       (!filters.documentName ||
@@ -683,7 +872,6 @@ const DocumentManagementSystem = () => {
     currentPage * rowsPerPage
   );
 
-  // Render field display
   const renderFieldDisplay = (field) => {
     const isSelected = selectedField === field.id;
 
@@ -716,6 +904,15 @@ const DocumentManagementSystem = () => {
             ⠿
           </div>
           <div className="bg-transparent rounded p-2 min-w-max group relative">
+            <div
+              className={`absolute -top-2 left-0 text-[10px] px-2 py-0.5 rounded ${
+                field.role === "approver"
+                  ? "bg-purple-100 text-purple-700"
+                  : "bg-blue-100 text-blue-700"
+              }`}
+            >
+              {field.role || "applicant"}
+            </div>
             {field.showLabel !== false && field.labelPosition === "top" && (
               <div className="text-xs font-semibold mb-1">
                 {field.label}
@@ -817,56 +1014,8 @@ const DocumentManagementSystem = () => {
       {/* Table View */}
       {view === "table" && (
         <div className="flex-1 flex flex-col p-6">
-          {/* Filters and Actions Row */}
           <div className="flex items-center justify-end mb-4 gap-4">
-            {/* <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Rows per page:</span>
-              <select
-                value={rowsPerPage}
-                onChange={(e) => {
-                  setRowsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="border rounded px-2 py-1 text-sm"
-              >
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-              <div className="flex items-center gap-1 ml-4">
-                <button
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.max(1, prev - 1))
-                  }
-                  disabled={currentPage === 1}
-                  className="p-1 rounded hover:bg-gray-200 disabled:opacity-30"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <span className="text-sm text-gray-600 px-2">
-                  Page {currentPage} of {totalPages || 1}
-                </span>
-                <button
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-                  }
-                  disabled={currentPage === totalPages || totalPages === 0}
-                  className="p-1 rounded hover:bg-gray-200 disabled:opacity-30"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div> */}
-
-            {/* Right: Filters and Add Button */}
             <div className="flex items-center gap-3">
-              {/* <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
-              >
-                <Filter className="w-4 h-4" />
-                Filters
-              </button> */}
               <button
                 onClick={() => {
                   resetDrawerState();
@@ -880,7 +1029,6 @@ const DocumentManagementSystem = () => {
             </div>
           </div>
 
-          {/* Filters Panel */}
           {showFilters && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
@@ -946,7 +1094,6 @@ const DocumentManagementSystem = () => {
             </motion.div>
           )}
 
-          {/* Table */}
           <div className="flex-1 bg-white border rounded-lg overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -1008,6 +1155,24 @@ const DocumentManagementSystem = () => {
                             <Edit2 className="w-4 h-4 text-green-600" />
                           </button>
                           <button
+                            onClick={() => handleShareDocument(doc)}
+                            title="Share with Applicant"
+                          >
+                            <Send className="w-4 h-4 text-indigo-600" />
+                          </button>
+                          <button
+                            onClick={() => handleApplicantFill(doc)}
+                            title="Fill as Applicant"
+                          >
+                            <Edit3 className="w-4 h-4 text-orange-600" />
+                          </button>
+                          <button
+                            onClick={() => handleApproverReview(doc)}
+                            title="Review as Approver"
+                          >
+                            <CheckCircle className="w-4 h-4 text-purple-600" />
+                          </button>
+                          <button
                             onClick={() => handleDownloadDocument(doc)}
                             className="p-1 hover:bg-gray-200 rounded transition"
                             title="Download"
@@ -1021,23 +1186,6 @@ const DocumentManagementSystem = () => {
                           >
                             <Copy className="w-4 h-4 text-indigo-600" />
                           </button>
-                          {/* <button
-                            onClick={() => handleArchiveDocument(doc.id)}
-                            className="p-1 hover:bg-gray-200 rounded transition"
-                            title={
-                              doc.status === "archived"
-                                ? "Unarchive"
-                                : "Archive"
-                            }
-                          >
-                            <Archive
-                              className={`w-4 h-4 ${
-                                doc.status === "archived"
-                                  ? "text-yellow-600"
-                                  : "text-orange-600"
-                              }`}
-                            />
-                          </button> */}
                           <button
                             onClick={() => handleDeleteDocument(doc.id)}
                             className="p-1 hover:bg-gray-200 rounded transition"
@@ -1086,8 +1234,8 @@ const DocumentManagementSystem = () => {
             </h2>
             <div className="w-32"></div>
           </div>
-          <div className="flex-1 overflow-auto bg-gray-100 p-6">
-            <div className="max-w-5xl mx-auto space-y-6">
+          <div className="flex-1 flex justify-center overflow-auto bg-gray-100 p-6">
+            <div className="flex flex-col justify-center items-start space-y-6">
               {pages.map((page) => (
                 <div
                   key={page.number}
@@ -1106,12 +1254,18 @@ const DocumentManagementSystem = () => {
                     {(droppedFields[page.number] || []).map((field) => (
                       <div
                         key={field.id}
-                        className="absolute bg-white border border-gray-400 rounded p-2"
+                        className="absolute bg-transparent rounded p-2"
                         style={{ left: field.x, top: field.y }}
                       >
-                        <div className="text-xs font-semibold mb-1">
-                          {field.label}
-                        </div>
+                        {field.showLabel !== false &&
+                          field.labelPosition === "top" && (
+                            <div className="text-xs font-semibold mb-1">
+                              {field.label}
+                              {field.required && (
+                                <span className="text-red-500 ml-0.5">*</span>
+                              )}
+                            </div>
+                          )}
                         {field.type === "checkbox" && (
                           <input type="checkbox" className="w-4 h-4" readOnly />
                         )}
@@ -1157,7 +1311,6 @@ const DocumentManagementSystem = () => {
       {/* Editor View */}
       {view === "editor" && (
         <div className="flex-1 flex overflow-hidden">
-          {/* Left Sidebar - Fields */}
           <div className="w-64 bg-white border-r overflow-y-auto">
             <div className="p-4">
               <h3 className="font-semibold text-gray-900 mb-4">Drag Fields</h3>
@@ -1178,7 +1331,6 @@ const DocumentManagementSystem = () => {
             </div>
           </div>
 
-          {/* Center - Preview */}
           <div className="flex-1 flex flex-col">
             <div className="bg-gray-200 border-b px-4 py-2 flex items-center justify-between">
               <button
@@ -1281,7 +1433,6 @@ const DocumentManagementSystem = () => {
             </div>
           </div>
 
-          {/* Right Sidebar - Field Config */}
           {selectedField && (
             <div className="w-80 bg-white border-l overflow-y-auto">
               <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between">
@@ -1302,6 +1453,25 @@ const DocumentManagementSystem = () => {
 
                   return (
                     <>
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-700 mb-1">
+                          To Be Filled By
+                        </label>
+                        <select
+                          value={field.role || "applicant"}
+                          onChange={(e) =>
+                            handleUpdateFieldAttribute(
+                              field.id,
+                              "role",
+                              e.target.value
+                            )
+                          }
+                          className="w-full px-2 py-1 border rounded text-sm"
+                        >
+                          <option value="applicant">Applicant</option>
+                          <option value="approver">Approver</option>
+                        </select>
+                      </div>
                       <div>
                         <label className="block text-xs font-semibold text-gray-700 mb-1">
                           Label
@@ -1513,6 +1683,441 @@ const DocumentManagementSystem = () => {
         </div>
       )}
 
+      {/* Applicant Fill View - WITH ROLE-BASED EDITABLE FIELDS */}
+      {view === "applicant-fill" && currentDocument && (
+        <div className="flex-1 flex flex-col">
+          <div className="bg-white border-b px-6 py-3 flex items-center justify-between">
+            <button
+              onClick={() => {
+                if (window.confirm("Exit without saving?")) {
+                  setView("table");
+                  setCurrentDocument(null);
+                  setCurrentUserId("");
+                  setCurrentUserRole("");
+                }
+              }}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            >
+              <ChevronLeft className="w-5 h-5" />
+              Back
+            </button>
+            <div className="text-center">
+              <h2 className="text-xl font-semibold">
+                {currentDocument.documentName}
+              </h2>
+              <p className="text-sm text-gray-600">
+                Filling as: {currentUserId}
+              </p>
+            </div>
+            <button
+              onClick={handleSaveApplicantData}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              Save & Submit
+            </button>
+          </div>
+          <div className="flex-1 flex justify-center overflow-auto bg-gray-100 p-6">
+            <div className="flex flex-col justify-center items-start space-y-6">
+              {pages.map((page) => (
+                <div
+                  key={page.number}
+                  className="bg-white shadow-lg"
+                  style={{ width: A4_WIDTH, height: A4_HEIGHT }}
+                >
+                  <div
+                    className="relative"
+                    style={{ width: A4_WIDTH, height: A4_HEIGHT }}
+                  >
+                    <img
+                      src={page.image}
+                      alt={`Page ${page.number}`}
+                      className="w-full h-full"
+                    />
+                    {(droppedFields[page.number] || []).map((field) => {
+                      const fieldRole = field.role || "applicant";
+                      const isEditable = fieldRole === "applicant";
+                      const fieldValue =
+                        userFieldData[currentDocument.id]?.[currentUserId]?.[
+                          field.id
+                        ] || "";
+
+                      return (
+                        <div
+                          key={field.id}
+                          className="absolute bg-transparent rounded p-2"
+                          style={{ left: field.x, top: field.y }}
+                        >
+                          {field.showLabel !== false &&
+                            field.labelPosition === "top" && (
+                              <div className="text-xs font-semibold mb-1">
+                                {field.label}
+                                {field.required && (
+                                  <span className="text-red-500 ml-0.5">*</span>
+                                )}
+                              </div>
+                            )}
+
+                          {field.type === "checkbox" && (
+                            <input
+                              type="checkbox"
+                              className="w-4 h-4"
+                              checked={
+                                fieldValue === true || fieldValue === "true"
+                              }
+                              onChange={(e) =>
+                                isEditable &&
+                                handleUpdateUserFieldValue(
+                                  field.id,
+                                  e.target.checked
+                                )
+                              }
+                              disabled={!isEditable}
+                            />
+                          )}
+
+                          {(field.type === "text" ||
+                            field.type === "name" ||
+                            field.type === "email" ||
+                            field.type === "phone") && (
+                            <input
+                              type="text"
+                              className={`border rounded px-2 py-1 text-sm ${
+                                isEditable
+                                  ? "bg-white"
+                                  : "bg-gray-100 cursor-not-allowed"
+                              }`}
+                              style={{ width: field.width || 200 }}
+                              value={fieldValue}
+                              onChange={(e) =>
+                                isEditable &&
+                                handleUpdateUserFieldValue(
+                                  field.id,
+                                  e.target.value
+                                )
+                              }
+                              readOnly={!isEditable}
+                            />
+                          )}
+
+                          {field.type === "date" && (
+                            <input
+                              type="date"
+                              className={`border rounded px-2 py-1 text-sm ${
+                                isEditable
+                                  ? "bg-white"
+                                  : "bg-gray-100 cursor-not-allowed"
+                              }`}
+                              style={{ width: field.width || 200 }}
+                              value={fieldValue}
+                              onChange={(e) =>
+                                isEditable &&
+                                handleUpdateUserFieldValue(
+                                  field.id,
+                                  e.target.value
+                                )
+                              }
+                              readOnly={!isEditable}
+                            />
+                          )}
+
+                          {field.type === "select" && (
+                            <select
+                              className={`border rounded px-2 py-1 text-sm ${
+                                isEditable
+                                  ? "bg-white"
+                                  : "bg-gray-100 cursor-not-allowed"
+                              }`}
+                              style={{ width: field.width || 200 }}
+                              value={fieldValue}
+                              onChange={(e) =>
+                                isEditable &&
+                                handleUpdateUserFieldValue(
+                                  field.id,
+                                  e.target.value
+                                )
+                              }
+                              disabled={!isEditable}
+                            >
+                              {(field.options || []).map((opt, i) => (
+                                <option key={i} value={opt}>
+                                  {opt}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+
+                          {field.type === "signature" && (
+                            <input
+                              type="text"
+                              className={`border rounded px-2 py-1 text-sm ${
+                                isEditable
+                                  ? "bg-white"
+                                  : "bg-gray-100 cursor-not-allowed"
+                              }`}
+                              style={{
+                                width: field.width || 200,
+                                fontFamily: "cursive",
+                              }}
+                              value={fieldValue}
+                              onChange={(e) =>
+                                isEditable &&
+                                handleUpdateUserFieldValue(
+                                  field.id,
+                                  e.target.value
+                                )
+                              }
+                              readOnly={!isEditable}
+                              placeholder={isEditable ? "Sign here" : ""}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approver Review View - SHOWS APPLICANT DATA + EDITABLE APPROVER FIELDS */}
+      {view === "approver-review" && currentDocument && (
+        <div className="flex-1 flex flex-col">
+          <div className="bg-white border-b px-6 py-3 flex items-center justify-between">
+            <button
+              onClick={() => {
+                if (window.confirm("Exit without saving?")) {
+                  setView("table");
+                  setCurrentDocument(null);
+                  setCurrentUserId("");
+                  setCurrentUserRole("");
+                }
+              }}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
+            >
+              <ChevronLeft className="w-5 h-5" />
+              Back
+            </button>
+            <div className="text-center">
+              <h2 className="text-xl font-semibold">
+                {currentDocument.documentName}
+              </h2>
+              <p className="text-sm text-gray-600">
+                Approver: {currentUserId} | Reviewing: {selectedApplicant}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleApproverDecision("approved")}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                <CheckCircle className="w-4 h-4" />
+                Approve
+              </button>
+              <button
+                onClick={() => handleApproverDecision("rejected")}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+              >
+                <XCircle className="w-4 h-4" />
+                Reject
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 flex">
+            <div className="w-64 bg-white border-r p-4 overflow-y-auto">
+              <h3 className="font-semibold text-gray-900 mb-4">Applicants</h3>
+              <div className="space-y-2">
+                {Object.keys(userFieldData[currentDocument.id] || {})
+                  .filter(
+                    (userId) =>
+                      userFieldData[currentDocument.id][userId].status ===
+                      "submitted"
+                  )
+                  .map((userId) => (
+                    <button
+                      key={userId}
+                      className={`w-full text-left px-3 py-2 rounded text-sm ${
+                        selectedApplicant === userId
+                          ? "bg-blue-100 text-blue-700 font-semibold"
+                          : "bg-gray-50 hover:bg-gray-100"
+                      }`}
+                      onClick={() => setSelectedApplicant(userId)}
+                    >
+                      {userId}
+                    </button>
+                  ))}
+              </div>
+            </div>
+
+            <div className="flex-1 flex justify-center overflow-auto bg-gray-100 p-6">
+              <div className="flex flex-col justify-center items-start space-y-6">
+                {pages.map((page) => (
+                  <div
+                    key={page.number}
+                    className="bg-white shadow-lg"
+                    style={{ width: A4_WIDTH, height: A4_HEIGHT }}
+                  >
+                    <div
+                      className="relative"
+                      style={{ width: A4_WIDTH, height: A4_HEIGHT }}
+                    >
+                      <img
+                        src={page.image}
+                        alt={`Page ${page.number}`}
+                        className="w-full h-full"
+                      />
+                      {(droppedFields[page.number] || []).map((field) => {
+                        const fieldRole = field.role || "applicant";
+                        const isEditable = fieldRole === "approver";
+                        const fieldValue =
+                          userFieldData[currentDocument.id]?.[
+                            selectedApplicant
+                          ]?.[field.id] || "";
+
+                        return (
+                          <div
+                            key={field.id}
+                            className="absolute bg-transparent rounded p-2"
+                            style={{ left: field.x, top: field.y }}
+                          >
+                            {field.showLabel !== false &&
+                              field.labelPosition === "top" && (
+                                <div className="text-xs font-semibold mb-1">
+                                  {field.label}
+                                  {field.required && (
+                                    <span className="text-red-500 ml-0.5">
+                                      *
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+
+                            {field.type === "checkbox" && (
+                              <input
+                                type="checkbox"
+                                className="w-4 h-4"
+                                checked={
+                                  fieldValue === true || fieldValue === "true"
+                                }
+                                onChange={(e) =>
+                                  isEditable &&
+                                  handleUpdateUserFieldValue(
+                                    field.id,
+                                    e.target.checked
+                                  )
+                                }
+                                disabled={!isEditable}
+                              />
+                            )}
+
+                            {(field.type === "text" ||
+                              field.type === "name" ||
+                              field.type === "email" ||
+                              field.type === "phone") && (
+                              <input
+                                type="text"
+                                className={`border rounded px-2 py-1 text-sm ${
+                                  isEditable
+                                    ? "bg-white"
+                                    : "bg-gray-100 cursor-not-allowed"
+                                }`}
+                                style={{ width: field.width || 200 }}
+                                value={fieldValue}
+                                onChange={(e) =>
+                                  isEditable &&
+                                  handleUpdateUserFieldValue(
+                                    field.id,
+                                    e.target.value
+                                  )
+                                }
+                                readOnly={!isEditable}
+                              />
+                            )}
+
+                            {field.type === "date" && (
+                              <input
+                                type="date"
+                                className={`border rounded px-2 py-1 text-sm ${
+                                  isEditable
+                                    ? "bg-white"
+                                    : "bg-gray-100 cursor-not-allowed"
+                                }`}
+                                style={{ width: field.width || 200 }}
+                                value={fieldValue}
+                                onChange={(e) =>
+                                  isEditable &&
+                                  handleUpdateUserFieldValue(
+                                    field.id,
+                                    e.target.value
+                                  )
+                                }
+                                readOnly={!isEditable}
+                              />
+                            )}
+
+                            {field.type === "select" && (
+                              <select
+                                className={`border rounded px-2 py-1 text-sm ${
+                                  isEditable
+                                    ? "bg-white"
+                                    : "bg-gray-100 cursor-not-allowed"
+                                }`}
+                                style={{ width: field.width || 200 }}
+                                value={fieldValue}
+                                onChange={(e) =>
+                                  isEditable &&
+                                  handleUpdateUserFieldValue(
+                                    field.id,
+                                    e.target.value
+                                  )
+                                }
+                                disabled={!isEditable}
+                              >
+                                {(field.options || []).map((opt, i) => (
+                                  <option key={i} value={opt}>
+                                    {opt}
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+
+                            {field.type === "signature" && (
+                              <input
+                                type="text"
+                                className={`border rounded px-2 py-1 text-sm ${
+                                  isEditable
+                                    ? "bg-white"
+                                    : "bg-gray-100 cursor-not-allowed"
+                                }`}
+                                style={{
+                                  width: field.width || 200,
+                                  fontFamily: "cursive",
+                                }}
+                                value={fieldValue}
+                                onChange={(e) =>
+                                  isEditable &&
+                                  handleUpdateUserFieldValue(
+                                    field.id,
+                                    e.target.value
+                                  )
+                                }
+                                readOnly={!isEditable}
+                                placeholder={isEditable ? "Sign here" : ""}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Drawer */}
       <AnimatePresence>
         {drawerOpen && (
@@ -1536,7 +2141,6 @@ const DocumentManagementSystem = () => {
               transition={{ type: "tween", duration: 0.3 }}
               className="fixed right-0 top-0 bottom-0 w-[500px] bg-white shadow-2xl z-50 flex flex-col"
             >
-              {/* Drawer Header */}
               <div className="border-b px-6 py-4 flex items-center justify-between">
                 <h2 className="text-xl font-semibold">
                   {drawerStep === "initial" && "Add Document"}
@@ -1556,14 +2160,11 @@ const DocumentManagementSystem = () => {
                 </button>
               </div>
 
-              {/* Drawer Content */}
               <div className="flex-1 overflow-y-auto p-6">
-                {/* Initial Step */}
                 {drawerStep === "initial" && (
                   <div className="space-y-4">
                     <button
                       onClick={() => {
-                        // Create blank page for design
                         const canvas = document.createElement("canvas");
                         const ctx = canvas.getContext("2d");
                         canvas.width = A4_WIDTH;
@@ -1628,7 +2229,6 @@ const DocumentManagementSystem = () => {
                   </div>
                 )}
 
-                {/* Upload/Details Step */}
                 {drawerStep === "upload" && (
                   <div className="space-y-4">
                     <div>
@@ -1755,7 +2355,6 @@ const DocumentManagementSystem = () => {
                   </div>
                 )}
 
-                {/* Workflow Step */}
                 {drawerStep === "workflow" && (
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-gray-800">
@@ -1857,7 +2456,6 @@ const DocumentManagementSystem = () => {
                 )}
               </div>
 
-              {/* Drawer Footer */}
               <div className="border-t px-6 py-4 flex items-center justify-between bg-gray-50">
                 <button
                   onClick={() => {
@@ -1898,4 +2496,5 @@ const DocumentManagementSystem = () => {
     </div>
   );
 };
+
 export default DocumentManagementSystem;
