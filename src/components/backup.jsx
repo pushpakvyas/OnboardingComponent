@@ -573,7 +573,7 @@ const DocumentManagementSystem = () => {
     setView("table");
   };
 
-  const handleDownloadDocument = async (doc) => {
+  const handleDownloadDocument = async (doc, userId = null) => {
     if (!doc.pages || doc.pages.length === 0) {
       alert("No pages to download");
       return;
@@ -583,17 +583,217 @@ const DocumentManagementSystem = () => {
       const pdfDoc = await PDFDocument.create();
 
       for (const page of doc.pages) {
-        const imageBytes = await fetch(page.image).then((res) =>
-          res.arrayBuffer()
-        );
+        // Create canvas with exact A4 dimensions
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = A4_WIDTH;
+        canvas.height = A4_HEIGHT;
 
-        let image;
-        if (page.image.includes("image/png")) {
-          image = await pdfDoc.embedPng(imageBytes);
-        } else {
-          image = await pdfDoc.embedJpg(imageBytes);
+        // Draw background image
+        const img = new Image();
+        img.src = page.image;
+        await new Promise((resolve) => {
+          img.onload = resolve;
+        });
+        ctx.drawImage(img, 0, 0, A4_WIDTH, A4_HEIGHT);
+
+        // Draw fields
+        if (doc.droppedFields && doc.droppedFields[page.number]) {
+          const fields = doc.droppedFields[page.number];
+
+          for (const field of fields) {
+            ctx.save();
+
+            if (userId) {
+              // USER-SPECIFIC DOWNLOAD: Draw filled values
+              const fieldValue = userFieldData[doc.id]?.[userId]?.[field.id];
+
+              if (
+                fieldValue !== undefined &&
+                fieldValue !== null &&
+                fieldValue !== ""
+              ) {
+                // Set font properties
+                ctx.font = `${field.fontSize || 14}px ${
+                  field.fontFamily || "Arial"
+                }`;
+                ctx.fillStyle = field.fontColor || "#000000";
+
+                // Calculate text position
+                let textX = field.x;
+                let textY = field.y;
+
+                // Adjust for label if shown
+                if (
+                  field.showLabel !== false &&
+                  field.labelPosition === "top"
+                ) {
+                  textY += 20;
+                }
+
+                // Add padding
+                textX += 8;
+                textY += 20;
+
+                // Draw the value
+                if (field.type === "checkbox") {
+                  const isChecked =
+                    fieldValue === true || fieldValue === "true";
+                  if (isChecked) {
+                    ctx.strokeStyle = field.fontColor || "#000000";
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(textX, textY - 2);
+                    ctx.lineTo(textX + 4, textY + 2);
+                    ctx.lineTo(textX + 10, textY - 6);
+                    ctx.stroke();
+                  }
+                } else if (field.type === "signature") {
+                  ctx.font = `${field.fontSize || 14}px cursive`;
+                  ctx.fillText(fieldValue.toString(), textX, textY);
+                } else {
+                  ctx.fillText(fieldValue.toString(), textX, textY);
+                }
+              }
+            } else {
+              // TEMPLATE DOWNLOAD: Draw field boxes and labels
+
+              // Calculate field dimensions
+              const fieldWidth = field.width || 200;
+              const fieldHeight =
+                field.type === "image" ? field.height || 100 : 30;
+              let boxX = field.x;
+              let boxY = field.y;
+
+              // Draw label if enabled
+              if (field.showLabel !== false) {
+                ctx.font = "12px Arial";
+                ctx.fillStyle = "#000000";
+
+                const labelText = `${field.label}${field.required ? " *" : ""}`;
+
+                if (field.labelPosition === "top") {
+                  ctx.fillText(labelText, boxX, boxY + 12);
+                  boxY += 20;
+                } else if (field.labelPosition === "left") {
+                  ctx.fillText(labelText + ":", boxX, boxY + 20);
+                  const labelWidth = ctx.measureText(labelText + ": ").width;
+                  boxX += labelWidth + 5;
+                }
+              }
+
+              // // Draw role badge
+              // ctx.font = "10px Arial";
+              // const roleText = field.role || "applicant";
+              // const rolePadding = 6;
+              // const roleWidth =
+              //   ctx.measureText(roleText).width + rolePadding * 2;
+
+              // // Role badge background
+              // ctx.fillStyle = field.role === "approver" ? "#F3E8FF" : "#DBEAFE";
+              // ctx.fillRect(boxX, boxY - 15, roleWidth, 14);
+
+              // // Role badge text
+              // ctx.fillStyle = field.role === "approver" ? "#7C3AED" : "#2563EB";
+              // ctx.fillText(roleText, boxX + rolePadding, boxY - 5);
+
+              // Draw field box
+              ctx.strokeStyle = "#3B82F6";
+              ctx.lineWidth = 2;
+              ctx.setLineDash([]);
+
+              if (field.type === "checkbox") {
+                ctx.strokeRect(boxX + 5, boxY + 5, 20, 20);
+              } else if (field.type === "image") {
+                ctx.strokeRect(boxX, boxY, fieldWidth, fieldHeight);
+
+                if (field.imageSrc) {
+                  try {
+                    const fieldImg = new Image();
+                    fieldImg.src = field.imageSrc;
+                    await new Promise((resolve, reject) => {
+                      fieldImg.onload = resolve;
+                      fieldImg.onerror = reject;
+                      setTimeout(reject, 1000);
+                    });
+                    ctx.drawImage(
+                      fieldImg,
+                      boxX,
+                      boxY,
+                      fieldWidth,
+                      fieldHeight
+                    );
+                  } catch (e) {
+                    ctx.fillStyle = "#9CA3AF";
+                    ctx.font = "12px Arial";
+                    ctx.setLineDash([]);
+                    ctx.fillText("Image", boxX + 10, boxY + fieldHeight / 2);
+                    ctx.setLineDash([5, 3]);
+                  }
+                } else {
+                  ctx.fillStyle = "#9CA3AF";
+                  ctx.font = "12px Arial";
+                  ctx.setLineDash([]);
+                  ctx.fillText("No image", boxX + 10, boxY + fieldHeight / 2);
+                  ctx.setLineDash([5, 3]);
+                }
+              } else {
+                ctx.strokeRect(boxX, boxY, fieldWidth, fieldHeight);
+
+                ctx.setLineDash([]);
+                ctx.fillStyle = "#9CA3AF";
+                ctx.font = `${(field.fontSize || 14) - 2}px ${
+                  field.fontFamily || "Arial"
+                }`;
+
+                let placeholderText = "";
+                switch (field.type) {
+                  case "text":
+                    placeholderText = "Text input";
+                    break;
+                  case "name":
+                    placeholderText = "Name";
+                    break;
+                  case "email":
+                    placeholderText = "Email address";
+                    break;
+                  case "phone":
+                    placeholderText = "Phone number";
+                    break;
+                  case "date":
+                    placeholderText = "DD/MM/YYYY";
+                    break;
+                  case "signature":
+                    placeholderText = "Signature";
+                    ctx.font = `${(field.fontSize || 14) - 2}px cursive`;
+                    break;
+                  case "select":
+                    placeholderText = field.options?.[0] || "Select...";
+                    break;
+                  default:
+                    placeholderText = "Input";
+                }
+
+                ctx.fillText(placeholderText, boxX + 8, boxY + 20);
+                ctx.setLineDash([5, 3]);
+              }
+
+              ctx.setLineDash([]);
+            }
+
+            ctx.restore();
+          }
         }
 
+        // Convert canvas to PNG and embed in PDF
+        const imageBytes = await new Promise((resolve) => {
+          canvas.toBlob(async (blob) => {
+            const arrayBuffer = await blob.arrayBuffer();
+            resolve(arrayBuffer);
+          }, "image/png");
+        });
+
+        const image = await pdfDoc.embedPng(imageBytes);
         const pdfPage = pdfDoc.addPage([A4_WIDTH, A4_HEIGHT]);
 
         pdfPage.drawImage(image, {
@@ -610,17 +810,14 @@ const DocumentManagementSystem = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `${doc.documentName}.pdf`;
+      link.download = userId
+        ? `${doc.documentName}_${userId}.pdf`
+        : `${doc.documentName.replace(/\\s+/g, "_")}_template.pdf`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Error creating PDF:", error);
-      alert("Failed to download PDF. Falling back to image download.");
-
-      const link = document.createElement("a");
-      link.href = doc.pages[0].image;
-      link.download = `${doc.documentName}.png`;
-      link.click();
+      alert("Failed to download PDF. Please try again.");
     }
   };
 
