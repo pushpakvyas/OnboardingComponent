@@ -1,25 +1,44 @@
 import { useState, useEffect } from "react";
-
-const STORAGE_KEY = "userFieldData";
+import { dataService } from "../services/dataService";
 
 export const useUserFieldData = () => {
-  const [userFieldData, setUserFieldData] = useState(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : {};
-    } catch (err) {
-      console.error("Error parsing user field data:", err);
-      return {};
-    }
-  });
+  const [userFieldData, setUserFieldData] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
+  // Load user field data on mount
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(userFieldData));
-    } catch (err) {
-      console.error("Error saving user field data:", err);
+    const loadUserFieldData = async () => {
+      try {
+        setLoading(true);
+        const data = await dataService.getUserFieldData();
+        setUserFieldData(data);
+        setError(null);
+      } catch (err) {
+        console.error("Error loading user field data:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUserFieldData();
+  }, []);
+
+  // Save user field data whenever it changes
+  useEffect(() => {
+    if (!loading) {
+      const saveUserFieldData = async () => {
+        try {
+          await dataService.saveUserFieldData(userFieldData);
+        } catch (err) {
+          console.error("Error saving user field data:", err);
+          setError(err.message);
+        }
+      };
+      saveUserFieldData();
     }
-  }, [userFieldData]);
+  }, [userFieldData, loading]);
 
   const updateFieldValue = (documentId, userId, fieldId, value) => {
     setUserFieldData((prev) => ({
@@ -77,6 +96,8 @@ export const useUserFieldData = () => {
 
   return {
     userFieldData,
+    loading,
+    error,
     updateFieldValue,
     updateUserStatus,
     getUserData,

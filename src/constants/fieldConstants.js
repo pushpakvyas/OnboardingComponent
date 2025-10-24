@@ -20,7 +20,7 @@ export const FIELD_DEFAULTS = {
   fontSize: 14,
   fontColor: "#000000",
   fontFamily: "Arial",
-  showLabel: true,
+  showLabel: false,
   labelPosition: "top",
   role: "applicant",
   required: false,

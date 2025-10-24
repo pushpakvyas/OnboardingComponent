@@ -65,6 +65,7 @@ export const DocumentDrawer = ({ open, onClose, onSave, onFileProcess }) => {
   return (
     <AnimatePresence>
       <motion.div
+        key="overlay"
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.5 }}
         exit={{ opacity: 0 }}
@@ -72,6 +73,7 @@ export const DocumentDrawer = ({ open, onClose, onSave, onFileProcess }) => {
         onClick={handleClose}
       />
       <motion.div
+        key="drawer"
         initial={{ x: "100%" }}
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
