@@ -1,5 +1,5 @@
 import { PDFDocument } from "pdf-lib";
-import { A4_WIDTH, A4_HEIGHT } from "../../constants/layoutConstants";
+import { A4_WIDTH, A4_HEIGHT } from "../constants/layoutConstants";
 
 const drawFilledField = async (ctx, field, fieldValue) => {
   if (fieldValue === undefined || fieldValue === null || fieldValue === "") {

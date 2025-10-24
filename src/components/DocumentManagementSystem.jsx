@@ -7,9 +7,9 @@ import { DocumentEditor } from "../components/document/DocumentEditor";
 import { ApplicantFillView } from "../components/workflow/ApplicantFillView";
 import { ApproverReviewView } from "../components/workflow/ApproverReviewView";
 import { DocumentDrawer } from "../components/drawer/DocumentDrawer";
-import { processPDF } from "../utils/document/pdfProcessor";
-import { processWord } from "../utils/document/wordProcessor";
-import { downloadPDF } from "../utils/document/pdfGenerator";
+import { processPDF } from "../utils/pdfProcessor";
+import { processWord } from "../utils/wordProcessor";
+import { downloadPDF } from "../utils/pdfGenerator";
 
 const DocumentManagementSystem = () => {
   const [view, setView] = useState("table");

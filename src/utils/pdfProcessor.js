@@ -1,4 +1,4 @@
-import { A4_WIDTH, A4_HEIGHT } from "../../constants/layoutConstants";
+import { A4_WIDTH, A4_HEIGHT } from "../constants/layoutConstants";
 
 export const processPDF = async (file) => {
   const pdfjsLib = window["pdfjs-dist/build/pdf"];

@@ -4,7 +4,7 @@ import {
   A4_HEIGHT,
   WORD_LINES_PER_PAGE,
   CANVAS_CONFIG,
-} from "../../constants/layoutConstants";
+} from "../constants/layoutConstants";
 
 export const processWord = async (file) => {
   const arrayBuffer = await file.arrayBuffer();
