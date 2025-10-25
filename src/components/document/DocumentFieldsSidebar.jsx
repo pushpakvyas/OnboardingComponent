@@ -14,7 +14,7 @@ export const DocumentFieldsSidebar = ({ onDragStart, onDragEnd }) => {
   };
 
   return (
-    <div className="w-64 bg-white border-r overflow-y-auto">
+    <div className="lg:w-65 xl:80 bg-white border-r overflow-y-auto">
       <div className="p-4">
         <h3 className="font-semibold text-gray-900 mb-4">Drag Fields</h3>
         <div className="space-y-2">

@@ -6,6 +6,7 @@ import { DocumentFieldsSidebar } from "./DocumentFieldsSidebar";
 import { DocumentFieldConfig } from "./DocumentFieldConfig";
 import { DraggableField } from "../fields/Draggablefield";
 import { A4_WIDTH, A4_HEIGHT } from "../../constants/layoutConstants";
+import { motion } from "framer-motion";
 
 export const DocumentEditor = ({ document, onSave, onBack }) => {
   const {
@@ -152,7 +153,7 @@ export const DocumentEditor = ({ document, onSave, onBack }) => {
         </div>
       </div>
 
-      {selectedField && (
+      {selectedField ? (
         <DocumentFieldConfig
           field={(droppedFields[currentPageNum] || []).find(
             (f) => f.id === selectedField
@@ -160,6 +161,46 @@ export const DocumentEditor = ({ document, onSave, onBack }) => {
           onUpdate={updateFieldAttribute}
           onClose={() => setSelectedField(null)}
         />
+      ) : (
+        <div className="w-60 bg-white border-l flex flex-col flex-shrink-0">
+          <div className="sticky top-0 bg-white border-b px-4 py-3 z-10">
+            <h3 className="text-sm font-semibold text-gray-900">Pages</h3>
+          </div>
+          <div className="overflow-y-auto p-3 space-y-3">
+            {pages.map((page) => (
+              <motion.div
+                key={page.number}
+                className={`relative cursor-pointer border-2 rounded-lg overflow-hidden transition-all mx-auto ${
+                  currentPageNum === page.number
+                    ? "border-blue-500 shadow-lg ring-2 ring-blue-200"
+                    : "border-gray-200 hover:border-gray-400 hover:shadow-md"
+                }`}
+                style={{ width: "75%" }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setCurrentPageNum(page.number)}
+              >
+                <div className="w-full aspect-[8.5/11] bg-gray-50 overflow-hidden">
+                  <img
+                    src={page.image}
+                    alt={`Page ${page.number}`}
+                    className="w-full h-full object-contain"
+                    loading="lazy"
+                  />
+                </div>
+                <div
+                  className={`text-center py-1.5 text-xs font-medium transition-colors ${
+                    currentPageNum === page.number
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-100 text-gray-700"
+                  }`}
+                >
+                  Page {page.number}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

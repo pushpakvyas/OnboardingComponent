@@ -1630,7 +1630,7 @@ const DocumentManagementSystem = () => {
             </div>
           </div>
 
-          {selectedField && (
+          {selectedField ? (
             <div className="w-80 bg-white border-l overflow-y-auto">
               <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between">
                 <h3 className="text-sm font-semibold">Field Configuration</h3>
@@ -1874,6 +1874,45 @@ const DocumentManagementSystem = () => {
                     </>
                   );
                 })()}
+              </div>
+            </div>
+          ) : (
+            <div className="w-80 bg-white border-l flex flex-col flex-shrink-0">
+              <div className="sticky top-0 bg-white border-b px-4 py-3 z-10">
+                <h3 className="text-sm font-semibold text-gray-900">Pages</h3>
+              </div>
+              <div className="overflow-y-auto p-3 space-y-3">
+                {pages.map((page) => (
+                  <motion.div
+                    key={page.number}
+                    className={`relative cursor-pointer border-2 rounded-lg overflow-hidden transition-all mx-auto ${
+                      currentPageNum === page.number
+                        ? "border-blue-500 shadow-lg ring-2 ring-blue-200"
+                        : "border-gray-200 hover:border-gray-400 hover:shadow-md"
+                    }`}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setCurrentPageNum(page.number)}
+                  >
+                    <div className="w-full aspect-[8.5/11] bg-gray-50 overflow-hidden">
+                      <img
+                        src={page.image}
+                        alt={`Page ${page.number}`}
+                        className="w-full h-full object-contain"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div
+                      className={`text-center py-1.5 text-xs font-medium transition-colors ${
+                        currentPageNum === page.number
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      Page {page.number}
+                    </div>
+                  </motion.div>
+                ))}
               </div>
             </div>
           )}

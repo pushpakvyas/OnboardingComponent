@@ -1,4 +1,5 @@
 import React from "react";
+import { useDocumentEditor } from "../../hooks/useDocumentEditor";
 
 export const FieldRenderer = ({
   field,
@@ -8,15 +9,12 @@ export const FieldRenderer = ({
   mode = "fill",
 }) => {
   const isEditable = !readOnly && mode === "fill";
+  console.log(typeof field.fontSize);
+
   const baseInputClass = `border rounded px-2 py-1 text-sm ${
     isEditable ? "bg-white" : "bg-gray-100 cursor-not-allowed"
   }`;
-
-  const calculateMaxChars = (width, fontSize) => {
-    const charWidthRatio = 0.5;
-    const padding = 12;
-    return Math.floor((width - padding) / (fontSize * charWidthRatio));
-  };
+  const { calculateMaxChars } = useDocumentEditor();
 
   const renderLabel = () => {
     if (field.showLabel === false) return null;
@@ -57,7 +55,12 @@ export const FieldRenderer = ({
           <input
             type="text"
             className={baseInputClass}
-            style={{ width: field.width || 200 }}
+            style={{
+              width: field.width || 200,
+              fontSize: `${field.fontSize}px` || "14px",
+              fontFamily: field.fontFamily || "Arial",
+              color: field.fontColor || "#000000",
+            }}
             value={value || ""}
             onChange={(e) => onChange?.(e.target.value)}
             readOnly={!isEditable}
@@ -74,7 +77,12 @@ export const FieldRenderer = ({
           <input
             type="date"
             className={baseInputClass}
-            style={{ width: field.width || 200 }}
+            style={{
+              width: field.width || 200,
+              fontSize: `${field.fontSize}` || "14px",
+              fontFamily: field.fontFamily || "Arial",
+              color: field.fontColor || "#000000",
+            }}
             value={value || ""}
             onChange={(e) => onChange?.(e.target.value)}
             readOnly={!isEditable}
@@ -85,7 +93,12 @@ export const FieldRenderer = ({
         return (
           <select
             className={baseInputClass}
-            style={{ width: field.width || 200 }}
+            style={{
+              width: field.width || 200,
+              fontSize: `${field.fontSize}` || "14px",
+              fontFamily: field.fontFamily || "Arial",
+              color: field.fontColor || "#000000",
+            }}
             value={value || ""}
             onChange={(e) => onChange?.(e.target.value)}
             disabled={!isEditable}
@@ -103,7 +116,12 @@ export const FieldRenderer = ({
           <input
             type="text"
             className={baseInputClass}
-            style={{ width: field.width || 200, fontFamily: "cursive" }}
+            style={{
+              width: field.width || 200,
+              fontSize: `${field.fontSize}` || "14px",
+              fontFamily: field.fontFamily || "cursive",
+              color: field.fontColor || "#000000",
+            }}
             value={value || ""}
             onChange={(e) => onChange?.(e.target.value)}
             readOnly={!isEditable}

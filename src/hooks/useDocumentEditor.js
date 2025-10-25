@@ -88,6 +88,12 @@ export const useDocumentEditor = (initialPages = [], initialFields = {}) => {
     setPages((prev) => [...prev, newPage]);
   };
 
+  const calculateMaxChars = (width, fontSize) => {
+    const charWidthRatio = 0.6;
+    const padding = 12;
+    return Math.floor((width + padding) / (fontSize * charWidthRatio));
+  };
+
   return {
     pages,
     setPages,
@@ -109,5 +115,6 @@ export const useDocumentEditor = (initialPages = [], initialFields = {}) => {
     updateFieldAttribute,
     updateFieldPosition,
     addBlankPage,
+    calculateMaxChars,
   };
 };

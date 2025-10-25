@@ -5,7 +5,7 @@ export const DocumentFieldConfig = ({ field, onUpdate, onClose }) => {
   if (!field) return null;
 
   return (
-    <div className="w-80 bg-white border-l overflow-y-auto">
+    <div className="lg:w-60 xl:w-80 bg-white border-l overflow-y-auto">
       <div className="sticky top-0 bg-white border-b px-4 py-3 flex items-center justify-between">
         <h3 className="text-sm font-semibold">Field Configuration</h3>
         <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
@@ -85,7 +85,7 @@ export const DocumentFieldConfig = ({ field, onUpdate, onClose }) => {
           />
         </div>
 
-        <div>
+        {/* <div>
           <label className="block text-xs font-semibold text-gray-700 mb-1">
             Font Size
           </label>
@@ -97,8 +97,26 @@ export const DocumentFieldConfig = ({ field, onUpdate, onClose }) => {
             }
             className="w-full px-2 py-1 border rounded text-sm"
           />
-        </div>
+        </div> */}
 
+        <div>
+          <label className="block text-xs font-semibold text-gray-700 mb-1">
+            Font Size
+          </label>
+          <select
+            value={field.fontSize ?? 12}
+            onChange={(e) =>
+              onUpdate(field.id, "fontSize", Number(e.target.value))
+            }
+            className="w-full px-2 py-1 border rounded text-sm"
+          >
+            {[12, 14, 16, 18, 20, 22, 24].map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
+          </select>
+        </div>
         <div>
           <label className="block text-xs font-semibold text-gray-700 mb-1">
             Font Family

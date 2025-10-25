@@ -116,8 +116,6 @@ const apiAdapter = {
   },
 
   saveDocuments: async (documents) => {
-    // When using API, we typically save one at a time
-    // This is a batch operation that might not be needed
     return await apiAdapter.request("/documents/batch", {
       method: "POST",
       body: JSON.stringify({ documents }),
