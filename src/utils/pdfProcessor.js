@@ -1,21 +1,60 @@
 import { A4_WIDTH, A4_HEIGHT } from "../constants/layoutConstants";
+let pdfjsLib = null;
+let pdfjsLoadingPromise = null;
 
-export const processPDF = async (file) => {
-  const pdfjsLib = window["pdfjs-dist/build/pdf"];
+const loadPdfJs = () => {
+  // If already loaded, return it
+  if (pdfjsLib) {
+    return Promise.resolve(pdfjsLib);
+  }
 
-  if (!pdfjsLib) {
+  // If currently loading, return the existing promise
+  if (pdfjsLoadingPromise) {
+    return pdfjsLoadingPromise;
+  }
+
+  // Start loading
+  pdfjsLoadingPromise = new Promise((resolve, reject) => {
+    // Check if already loaded in window
+    if (window["pdfjs-dist/build/pdf"]) {
+      pdfjsLib = window["pdfjs-dist/build/pdf"];
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      resolve(pdfjsLib);
+      return;
+    }
+
+    // Dynamically load the script
     const script = document.createElement("script");
     script.src =
       "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-    await new Promise((resolve, reject) => {
-      script.onload = resolve;
-      script.onerror = reject;
-      document.head.appendChild(script);
-    });
-  }
+    script.async = true;
 
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    script.onload = () => {
+      pdfjsLib = window["pdfjs-dist/build/pdf"];
+      if (pdfjsLib) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+        console.log("PDF.js loaded successfully");
+        resolve(pdfjsLib);
+      } else {
+        reject(new Error("PDF.js failed to load"));
+      }
+    };
+
+    script.onerror = () => {
+      reject(new Error("Failed to load PDF.js script"));
+    };
+
+    document.head.appendChild(script);
+  });
+
+  return pdfjsLoadingPromise;
+};
+
+export const processPDF = async (file) => {
+  // Load PDF.js first
+  const pdfjsLib = await loadPdfJs();
 
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;

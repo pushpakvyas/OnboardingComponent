@@ -2734,3 +2734,1583 @@ const DocumentManagementSystem = () => {
 };
 
 export default DocumentManagementSystem;
+
+// import React, { useEffect, useState } from "react";
+// import foundit from "../../../assets/images/Marketplace/foundit.svg";
+// import jora from "../../../assets/images/Marketplace/jora.svg";
+// import linkedin from "../../../assets/images/Marketplace/linkedin.svg";
+// import monster from "../../../assets/images/Marketplace/monster.svg";
+// import naukari from "../../../assets/images/Marketplace/naukari.svg";
+// import shine from "../../../assets/images/Marketplace/shine.svg";
+// import zipRecruiters from "../../../assets/images/Marketplace/zipRecruiters.svg";
+// import { CardWithButton, CustomSearch, PageTabAdv } from "../../../components";
+// import SetupModel from "./Modals/SetupModel";
+// import { useModuleAccess } from "../../../hooks";
+// import { useSelector } from "react-redux";
+// import MarketPlaceTabs from "./Modals/MarketPlaceTabs";
+
+// // const options = [
+// //   { label: "VOIP", value: "VOIP" },
+// //   { label: "VMS", value: "VMS" },
+// //   { label: "Job Board", value: "Job Board" },
+// //   { label: "Bulk Email", value: "Bulk Email" },
+// //   { label: "WhatsApp", value: "WhatsApp" },
+// //   { label: "SMS", value: "SMS" },
+// //   { label: "AI (Beta)", value: "AI" },
+// //   { label: "Productivity", value: "Productivity" },
+// //   { label: "Assessment Tools", value: "Assessment Tools" },
+// //   { label: "View Interview", value: "View Interview" },
+// //   { label: "Background Check", value: "Background Check" },
+// // ];
+
+// const Integration = () => {
+//   // const [options, setOptions] = useState([]);
+//   const [checkMultiSelect, setCheckMultiSelect] = useState([]);
+//   const [searchValue, setSearchValue] = useState("");
+//   const [options, setOptions] = useState([]);
+//   const jobBoardDetails = useSelector(
+//     (state) => state.settings.configurations.integrations.JobBoardDetails
+//   );
+
+//   // function to check if a given integration is already added
+//   const isIntegrationAdded = (category, type) => {
+//     return jobBoardDetails.some(
+//       (item) => item.category === Number(category) && item.type === type
+//     );
+//   };
+
+//   // useEffect(() => {
+//   //   setOptions([
+//   //     { label: "VOIP", value: "VOIP" },
+//   //     { label: "VMS", value: "VMS" },
+//   //     { label: "Job Board", value: "Job Board" },
+//   //     { label: "WhatsApp", value: "WhatsApp" },
+//   //     { label: "SMS", value: "SMS" },
+//   //     { label: "AI (Beta)", value: "AI" },
+//   //     { label: "Productivity", value: "Productivity" },
+//   //     { label: "Assessment Tools", value: "Assessment Tools" },
+//   //     { label: "View Interview", value: "View Interview" },
+//   //     { label: "Background Check", value: "Background Check" },
+//   //     { label: "Bulk Email", value: "Bulk Email" },
+//   //   ]);
+//   // }, []);
+//   useEffect(() => {
+//     setOptions([
+//       { label: "VOIP", value: 1 },
+//       { label: "VMS", value: 2 },
+//       { label: "Job Board", value: 3 },
+//       { label: "WhatsApp", value: 4 },
+//       { label: "SMS", value: 5 },
+//       { label: "AI (Beta)", value: 6 },
+//       { label: "Productivity", value: 7 },
+//       { label: "Assessment Tools", value: 8 },
+//       { label: "View Interview", value: 9 },
+//       { label: "Background Check", value: 10 },
+//       { label: "Bulk Email", value: 11 },
+//     ]);
+//   }, []);
+//   const categoryMap = {
+//     1: "VOIP",
+//     2: "VMS",
+//     3: "Job Board",
+//     4: "WhatsApp",
+//     5: "SMS",
+//     6: "AI",
+//     7: "Productivity",
+//     8: "Assessment Tools",
+//     9: "View Interview",
+//     10: "Background Check",
+//     11: "Bulk Email",
+//   };
+
+//   const data = {
+//     VOIP: [
+//       {
+//         title: "VOIP Office CRM",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access  withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "ZOOM",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "Knowlarity",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "Vonage",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "Vitel Global",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "3cx URL",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "VOX",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "RingCentral",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "Plivo",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//     ],
+//     VMS: [
+//       {
+//         title: "VOIP Office CRM",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "Convendis",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "iLabour 360",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//     ],
+//     "Job Board": [
+//       {
+//         type: 1,
+//         title: <img src={monster} alt="Header Logo" className="w-fit h-8" />,
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel category={3} type={1} />,
+//       },
+//       {
+//         type: 2,
+//         title: <img src={shine} alt="Tek Logo" className="w-fit h-8" />,
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         type: 3,
+//         title: <img src={naukari} alt="Header Logo" className="w-fit h-8" />,
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: <img src={linkedin} alt="Header Logo" className="w-fit h-8" />,
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: (
+//           <img src={zipRecruiters} alt="Header Logo" className="w-fit h-8" />
+//         ),
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: <img src={jora} alt="Header Logo" className="w-fit h-8" />,
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//     ],
+//     "Bulk Email": [
+//       {
+//         type: 1,
+//         title: "G-suite",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         type: 2,
+//         title: "Outlook",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         type: 3,
+//         title: "Mailgun",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         type: 4,
+//         title: "AWS SES",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         type: 5,
+//         title: "Instantly",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//     ],
+//     WhatsApp: [
+//       {
+//         title: "VOIP Office CRM",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "Convendis",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "iLabour 360",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//     ],
+//     SMS: [
+//       {
+//         title: "VOIP Office CRM",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "Convendis",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "iLabour 360",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//     ],
+//     AI: [
+//       {
+//         title: "VOIP Office CRM",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "Convendis",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "iLabour 360",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//     ],
+//     Productivity: [
+//       // {
+//       //   title: "Productivity Tool 1",
+//       //   description:
+//       //     "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//       //   setup: <SetupModel />,
+//       // },
+//       // {
+//       //   title: "Productivity Tool 2",
+//       //   description:
+//       //     "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//       //   setup: <SetupModel />,
+//       // },
+//       // {
+//       //   title: "Productivity Tool 3",
+//       //   description:
+//       //     "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//       //   setup: <SetupModel />,
+//       // },
+//       {
+//         type: 1,
+//         title: "Google Search API",
+//         description: "Short Description",
+//         setup: <SetupModel />,
+//       },
+//     ],
+//     "Assessment Tools": [
+//       {
+//         title: "Assessment Tool 1",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "Assessment Tool 2",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "Assessment Tool 3",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//     ],
+//     "View Interview": [
+//       {
+//         title: "View Interview 1",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "View Interview 2",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "View Interview 3",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//     ],
+//     "Background Check": [
+//       {
+//         title: "Background Check 1",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "Background Check 2",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//       {
+//         title: "Background Check 3",
+//         description:
+//           "Please request the Monster pre-presentative provide the API access withg registered name to configure and",
+//         setup: <SetupModel />,
+//       },
+//     ],
+//   };
+
+//   const filteredOptions =
+//     searchValue?.length > 0
+//       ? options.filter((value) =>
+//           value["label"].toLowerCase().includes(searchValue.toLowerCase())
+//         )
+//       : options;
+
+//   const handleSelect = (optionValue) => {
+//     let newSelected;
+//     if (checkMultiSelect.includes(optionValue)) {
+//       newSelected = checkMultiSelect.filter((v) => v !== optionValue);
+//     } else {
+//       newSelected = [...checkMultiSelect, optionValue];
+//     }
+//     setCheckMultiSelect(newSelected);
+//   };
+
+//   const handleSelectAll = () => {
+//     if (checkMultiSelect.length === options.length) {
+//       setCheckMultiSelect([]);
+//     } else {
+//       setCheckMultiSelect(options.map((opt) => opt["value"]));
+//     }
+//   };
+
+//   const isOptionSelected = (option) =>
+//     checkMultiSelect.includes(option["value"]);
+
+//   // return (
+
+//   //   <div className="grid grid-cols-4 overflow-hidden">
+//   //     <div className="col-span-1 p-3">
+//   //       <FormFieldSet
+//   //         type="multiSelect"
+//   //         title="Select"
+//   //         placeholder="Select Options"
+//   //         options={options}
+//   //         value={checkMultiSelect}
+//   //         onChange={setCheckMultiSelect}
+//   //         showSelectAll={true}
+//   //       />
+//   //     </div>
+
+//   //     <div className="col-span-3 p-3">
+//   //       <div className="h-[75vh] border border-gray-100 rounded-md p-4 flex flex-col flex-1 overflow-auto shadow-sm">
+//   //         {/* {checkMultiSelect && checkMultiSelect.length === 0
+//   //           ? // ? Object.keys(data).map((category) => (
+//   //             //     <div key={category} className="mb-6">
+//   //             //       <h5 className="mb-4 font-medium">Selected {category}</h5>
+//   //             //       <div className="grid grid-cols-3 gap-4 ">
+//   //             //         {data[category] &&
+//   //             //           data[category].map((item, index) => (
+//   //             //             <CardWithButton
+//   //             //               key={index}
+//   //             //               title={item.title}
+//   //             //               description={item.description}
+//   //             //               category={category}
+//   //             //               setup={item.setup}
+//   //             //             />
+//   //             //           ))}
+//   //             //       </div>
+//   //             //     </div>
+//   //             //   ))
+//   //             Object.keys(data).map((category) => (
+//   //               <div key={category} className="mb-6">
+//   //                 <h5 className="mb-4 font-medium">Selected {category}</h5>
+//   //                 <div className="grid grid-cols-3 gap-4">
+//   //                   {data[category]?.map((item, index) => (
+//   //                     <CardWithButton
+//   //                       key={index}
+//   //                       title={item.title}
+//   //                       description={item.description}
+//   //                       category={category} // here "category" exists
+//   //                       setup={
+//   //                         <SetupModel
+//   //                           category={category} // use the "category" from map
+//   //                           type={item.type || index + 1}
+//   //                         />
+//   //                       }
+//   //                     />
+//   //                   ))}
+//   //                 </div>
+//   //               </div>
+//   //             ))
+//   //           : // : checkMultiSelect.map((key, index) => (
+//   //             //     <div className="mb-6" key={index}>
+//   //             //       <h5 className="mb-4 font-normal">Selected {key}</h5>
+//   //             //       <div className="grid grid-cols-3 gap-4 ">
+//   //             //         {data[key] &&
+//   //             //           data[key].map((item, index) => (
+//   //             //             <CardWithButton
+//   //             //               key={index}
+//   //             //               title={item.title}
+//   //             //               description={item.description}
+//   //             //               category={key}
+//   //             //               setup={item.setup}
+//   //             //             />
+//   //             //           ))}
+//   //             //       </div>
+//   //             //     </div>
+//   //             //   ))}
+//   //             // checkMultiSelect.map((numVal, index) => {
+//   //             //   const key = categoryMap[numVal]; // map numeric value → category name
+//   //             //   return (
+//   //             //     <div className="mb-6" key={index}>
+//   //             //       <h5 className="mb-4 font-normal">Selected {key}</h5>
+//   //             //       <div className="grid grid-cols-3 gap-4">
+//   //             //         {data[key]?.map((item, idx) => (
+//   //             //           <CardWithButton
+//   //             //             key={idx}
+//   //             //             title={item.title}
+//   //             //             description={item.description}
+//   //             //             category={key}
+//   //             //             setup={item.setup}
+//   //             //           />
+//   //             //         ))}
+//   //             //       </div>
+//   //             //     </div>
+//   //             //   );
+//   //             // })}
+//   //             checkMultiSelect.map((numVal, index) => {
+//   //               const category = categoryMap[numVal]; // ← use this name
+//   //               return (
+//   //                 <div className="mb-6" key={index}>
+//   //                   <h5 className="mb-4 font-normal">Selected {category}</h5>
+//   //                   <div className="grid grid-cols-3 gap-4">
+//   //                     {data[category]?.map((item, idx) => (
+//   //                       <CardWithButton
+//   //                         key={idx}
+//   //                         title={item.title}
+//   //                         description={item.description}
+//   //                         category={category} // use "category"
+//   //                         setup={
+//   //                           <SetupModel
+//   //                             category={category} // pass category
+//   //                             type={item.type || idx + 1}
+//   //                           />
+//   //                         }
+//   //                       />
+//   //                     ))}
+//   //                   </div>
+//   //                 </div>
+//   //               );
+//   //             })} */}
+//   //         <div className="col-span-3 p-3">
+//   //           <div className="h-[75vh] border border-gray-100 rounded-md p-4 flex flex-col flex-1 overflow-auto shadow-sm">
+//   //             {checkMultiSelect && checkMultiSelect.length === 0
+//   //               ? Object.keys(data).map((category) => (
+//   //                   <div key={category} className="mb-6">
+//   //                     <h5 className="mb-4 font-medium">Selected {category}</h5>
+//   //                     <div className="grid grid-cols-3 gap-4">
+//   //                       {data[category]?.map((item, index) => (
+//   //                         <CardWithButton
+//   //                           key={index}
+//   //                           title={item.title}
+//   //                           description={item.description}
+//   //                           category={category}
+//   //                           setup={
+//   //                             <SetupModel
+//   //                               category={Object.keys(categoryMap).find(
+//   //                                 (key) => categoryMap[key] === category
+//   //                               )} // numeric category for payload
+//   //                               type={item.type || index + 1}
+//   //                             />
+//   //                           }
+//   //                         />
+//   //                       ))}
+//   //                     </div>
+//   //                   </div>
+//   //                 ))
+//   //               : // : checkMultiSelect.map((numVal, index) => {
+//   //                 //     const categoryName = categoryMap[numVal];
+//   //                 //     const numericCategory = Number(key); // map numeric value → category string
+//   //                 //     return (
+//   //                 //       <div className="mb-6" key={index}>
+//   //                 //         <h5 className="mb-4 font-normal">
+//   //                 //           Selected {categoryName}
+//   //                 //         </h5>
+//   //                 //         <div className="grid grid-cols-3 gap-4">
+//   //                 //           {data[categoryName]?.map((item, idx) => (
+//   //                 //             <CardWithButton
+//   //                 //               key={idx}
+//   //                 //               title={item.title}
+//   //                 //               description={item.description}
+//   //                 //               category={numericCategory}
+//   //                 //               setup={
+//   //                 //                 <SetupModel
+//   //                 //                   category={numericCategory} // numeric value for payload
+//   //                 //                   type={item.type || idx + 1}
+//   //                 //                 />
+//   //                 //               }
+//   //                 //             />
+//   //                 //           ))}
+//   //                 //         </div>
+//   //                 //       </div>
+//   //                 //     );
+//   //                 //   })}
+//   //                 checkMultiSelect.map((numVal, index) => {
+//   //                   const categoryName = categoryMap[numVal]; // Get string name (like "Job Board")
+//   //                   const numericCategory = Number(numVal); //  fix — convert current value, not undefined key
+//   //                   return (
+//   //                     <div className="mb-6" key={index}>
+//   //                       <h5 className="mb-4 font-normal">
+//   //                         Selected {categoryName}
+//   //                       </h5>
+//   //                       <div className="grid grid-cols-3 gap-4">
+//   //                         {data[categoryName]?.map((item, idx) => (
+//   //                           <CardWithButton
+//   //                             key={idx}
+//   //                             title={item.title}
+//   //                             description={item.description}
+//   //                             category={numericCategory}
+//   //                             setup={
+//   //                               <SetupModel
+//   //                                 category={numericCategory} //  numeric value now passes correctly
+//   //                                 type={item.type || idx + 1}
+//   //                               />
+//   //                             }
+//   //                           />
+//   //                         ))}
+//   //                       </div>
+//   //                     </div>
+//   //                   );
+//   //                 })}
+//   //           </div>
+//   //         </div>
+//   //       </div>
+//   //     </div>
+//   //   </div>
+//   // );
+
+//   return (
+//     <div className="grid grid-cols-4 flex-1 gap-3 overflow-hidden pb-2 pt-3">
+//       <div className="col-span-1 border border-gray-100 rounded-md p-2 overflow-auto shadow-sm">
+//         <div className="mx-2 mt-2">
+//           <CustomSearch
+//             placeholder="Search"
+//             value={searchValue}
+//             onChange={(key, value) => setSearchValue(value)}
+//             rounded="rounded-full"
+//           />
+//           <hr className="mt-2 text-gray-300" />
+//         </div>
+//         <ul className="p-2 space-y-1">
+//           {searchValue.length == 0 && (
+//             <li
+//               className="flex items-center p-2 rounded cursor-pointer hover:bg-primary-50"
+//               onClick={handleSelectAll}
+//             >
+//               <input
+//                 type="checkbox"
+//                 checked={checkMultiSelect.length === options.length}
+//                 readOnly
+//                 className="mr-2 cursor-pointer appearance-none h-4 w-4 border border-gray-300 rounded-sm checked:bg-primary checked:border-primary checked:after:content-['✓']
+//                       checked:after:text-white checked:after:flex checked:after:items-center checked:after:justify-center checked:after:h-full checked:after:w-full checked:after:py-2"
+//               />
+//               <span>All</span>
+//             </li>
+//           )}
+
+//           {filteredOptions.map((opt) => (
+//             <li
+//               key={opt["value"]}
+//               className="flex items-center p-2 rounded cursor-pointer hover:bg-primary-50"
+//               onClick={() => handleSelect(opt["value"])}
+//             >
+//               <input
+//                 type="checkbox"
+//                 checked={isOptionSelected(opt)}
+//                 readOnly
+//                 className="mr-2 cursor-pointer appearance-none h-4 w-4 border border-gray-300 rounded-sm checked:bg-primary checked:border-primary checked:after:content-['✓']
+//                       checked:after:text-white checked:after:flex checked:after:items-center checked:after:justify-center checked:after:h-full checked:after:w-full checked:after:py-2"
+//               />
+//               <span className={`flex-1`}>{opt["label"]}</span>
+//             </li>
+//           ))}
+//         </ul>
+//       </div>
+
+//       {/* <div className="col-span-3 border border-gray-100 rounded-md p-4 flex flex-col overflow-auto shadow-sm">
+//         {checkMultiSelect && checkMultiSelect.length === 0
+//           ? Object.keys(data).map((category) => (
+//               <div key={category} className="mb-6">
+//                 <h5 className="mb-4 font-medium">Selected {category}</h5>
+//                 <div className="grid grid-cols-3 gap-4 ">
+//                   {data[category] &&
+//                     data[category].map((item, index) => (
+//                       <CardWithButton
+//                         key={index}
+//                         title={item.title}
+//                         description={item.description}
+//                         category={category}
+//                         setup={item.setup}
+//                       />
+//                     ))}
+//                 </div>
+//               </div>
+//             ))
+//           : checkMultiSelect.map((key, index) => (
+//               <div className="mb-6" key={index}>
+//                 <h5 className="mb-4 font-medium">Selected {key}</h5>
+//                 <div className="grid grid-cols-3 gap-4 ">
+//                   {data[key] &&
+//                     data[key].map((item, index) => (
+//                       <CardWithButton
+//                         key={index}
+//                         title={item.title}
+//                         description={item.description}
+//                         category={key}
+//                         setup={item.setup}
+//                       />
+//                     ))}
+//                 </div>
+//               </div>
+//             ))}
+//       </div> */}
+//       <div className="col-span-3 border border-gray-100 rounded-md p-4 flex flex-col overflow-auto shadow-sm">
+//         {/* {checkMultiSelect && checkMultiSelect.length === 0
+//           ? Object.keys(data).map((category) => (
+//               <div key={category} className="mb-6">
+//                 <h5 className="mb-4 font-medium">Selected {category}</h5>
+//                 <div className="grid grid-cols-3 gap-4">
+//                   {data[category]?.map((item, index) => (
+//                     <CardWithButton
+//                       key={index}
+//                       title={item.title}
+//                       description={item.description}
+//                       category={
+//                         Object.keys(categoryMap).find(
+//                           (key) => categoryMap[key] === category
+//                         ) // numeric category for payload
+//                       }
+//                       setup={
+//                         <SetupModel
+//                           category={Object.keys(categoryMap).find(
+//                             (key) => categoryMap[key] === category
+//                           )} // numeric category
+//                           type={item.type || index + 1}
+//                         />
+//                       }
+//                     />
+//                   ))}
+//                 </div>
+//               </div>
+//             )) */}
+//         {checkMultiSelect && checkMultiSelect.length === 0
+//           ? Object.keys(data).map((category) => {
+//               const categoryNum = Number(
+//                 Object.keys(categoryMap).find(
+//                   (key) => categoryMap[key] === category
+//                 )
+//               );
+
+//               return (
+//                 <div key={category} className="mb-6">
+//                   <h5 className="mb-4 font-medium">Selected {category}</h5>
+//                   <div className="grid grid-cols-3 gap-4">
+//                     {data[category]?.map((item, idx) => {
+//                       const typeValue = item.type ?? idx + 1;
+
+//                       return (
+//                         <CardWithButton
+//                           key={`${category}-${idx}`}
+//                           title={item.title}
+//                           description={item.description}
+//                           category={categoryNum}
+//                           type={typeValue}
+//                           setup={
+//                             // <SetupModel
+//                             //   category={categoryNum}
+//                             //   type={typeValue}
+//                             // />
+//                             <MarketPlaceTabs />
+//                           }
+//                         />
+//                       );
+//                     })}
+//                   </div>
+//                 </div>
+//               );
+//             })
+//           : checkMultiSelect.map((numVal, index) => {
+//               const categoryName = categoryMap[numVal]; // e.g. 3 → "Job Board"
+//               return (
+//                 <div className="mb-6" key={index}>
+//                   <h5 className="mb-4 font-medium">Selected {categoryName}</h5>
+//                   <div className="grid grid-cols-3 gap-4">
+//                     {data[categoryName]?.map((item, idx) => (
+//                       <CardWithButton
+//                         key={idx}
+//                         title={item.title}
+//                         description={item.description}
+//                         category={numVal}
+//                         type={item.type || idx + 1} //  numeric category for payload
+//                         setup={
+//                           // <SetupModel
+//                           //   category={numVal} // numeric value passed here
+//                           //   type={item.type || idx + 1}
+//                           // />
+//                           <MarketPlaceTabs />
+//                         }
+//                         // setup={item.setup}
+//                       />
+//                     ))}
+//                   </div>
+//                 </div>
+//               );
+//             })}
+//       </div>
+//     </div>
+//   );
+// };
+
+// const Marketplace = () => {
+//   const SettingsMenus = [
+//     {
+//       title: "Marketplace",
+//       page: <Integration />,
+//       type: "main",
+//       id: "marketplace_marketplace",
+//     },
+//   ];
+//   const filteredTabs = useModuleAccess({
+//     allTabs: SettingsMenus,
+//     parentId: "marketplace",
+//   });
+//   return (
+//     <PageTabAdv
+//       tabs={filteredTabs}
+//       color="black"
+//       variant="outlined"
+//       baseUrl="/ats/marketplace"
+//     />
+//   );
+// };
+
+// export default Marketplace;
+
+// import React, { useState } from "react";
+// import { Button, FormFieldSet, Modal } from "../../../../../components";
+
+// const ResumeSearch = () => {
+//   const [showConnectMonsterModal, SetShowConnectMonsterModal] = useState(false);
+
+//   const options = [
+//     { label: "Option 1", value: "option1" },
+//     { label: "Option 2", value: "option2" },
+//     { label: "Option 3", value: "option3" },
+//     { label: "Option 4", value: "option4" },
+//   ];
+
+//   const formFields = [
+//     {
+//       title: "Username",
+//       placeholder: "Enter Username",
+//       type: "text",
+//       required: true,
+//     },
+//     {
+//       title: "Display name",
+//       placeholder: "Enter Display Name",
+//       type: "text",
+//       required: true,
+//     },
+//     {
+//       title: "CAT",
+//       placeholder: "Enter CAT",
+//       type: "text",
+//       required: true,
+//     },
+//     {
+//       title: "Subscription (Annually)",
+//       placeholder: "Enter Subscription",
+//       type: "text",
+//       required: true,
+//     },
+//     {
+//       title: "Available",
+//       placeholder: "Enter Available",
+//       type: "text",
+//       value: "0",
+//       disabled: true,
+//     },
+//     {
+//       title: "Downloaded",
+//       placeholder: "Enter Downloaded",
+//       type: "text",
+//       disabled: true,
+//     },
+//   ];
+//   return (
+//     <div>
+//       <div className="flex justify-end items-end mb-1">
+//         <Button
+//           title="Connect Monster"
+//           size="sm"
+//           //   icon={"place_item"}
+//           onClick={() => SetShowConnectMonsterModal(true)}
+//         />
+//       </div>
+//       <p>
+//         Integration with Monster for resume search is a straightforward process
+//         through Tektree Inc. Follow these steps.
+//       </p>
+//       <div className="font-bold mt-5 mb-2">
+//         Here are the steps to configure the Integrations
+//       </div>
+//       <ol className="list-decimal list-inside">
+//         <li>Contact yout Monster Account Manager to initiate the process.</li>
+//         <li>
+//           Request the <b>CAT</b>.
+//         </li>
+//         <li>
+//           Click on <b>"Connect Monster"</b> and provide the necessary details:
+//           Username, Password, CAT, Display name.
+//         </li>
+//         <li>Save the entered information to add your account successfully.</li>
+//         <li>
+//           Once saved, you can allocate credits to your team for utilization.
+//         </li>
+//         <li>
+//           Get ready to find top talent with monster extensive network and tools.
+//         </li>
+//       </ol>
+//       <Modal
+//         title="Add Account"
+//         isOpen={showConnectMonsterModal}
+//         onClose={() => SetShowConnectMonsterModal(false)}
+//         width="max-w-4xl"
+//         titleColor={"warning"}
+//       >
+//         {/* <div className="grid grid-cols-3 justify-center gap-4 py-5">
+//           <FormFieldSet
+//             type="text"
+//             title={"Username"}
+//             placeholder="Enter Username"
+//             // value={excelFile}
+//             // onChange={setExcelFile}
+//             required
+//           />
+//           <FormFieldSet
+//             type="text"
+//             title={"Display name"}
+//             placeholder="Enter Display Name"
+//             required
+//           />
+//           <FormFieldSet
+//             type="text"
+//             title={"CAT"}
+//             placeholder="Enter CAT"
+//             required
+//           />
+//           <FormFieldSet
+//             type="text"
+//             title={"Subscription (Annually)"}
+//             placeholder="Enter Subscription"
+//             required
+//           />
+//           <FormFieldSet
+//             type="text"
+//             title={"Available"}
+//             value="0"
+//             placeholder="Enter Available"
+//             disabled
+//           />
+//           <FormFieldSet
+//             type="text"
+//             title={"Downloaded"}
+//             placeholder="Enter Downloaded"
+//             disabled
+//           />
+//           <FormFieldSet
+//             type="multiSelect"
+//             title="Location purchased"
+//             placeholder="select Options"
+//             showSearch
+//             showSelectAll={true}
+//             shadow={true}
+//             options={options}
+//             value="option 1"
+//           />
+//         </div> */}
+//         <div className="grid grid-cols-3 gap-4 py-5">
+//           {formFields.map((field, index) => (
+//             <FormFieldSet
+//               key={index}
+//               type={field.type}
+//               title={field.title}
+//               placeholder={field.placeholder}
+//               required={field.required}
+//               value={field.value}
+//               disabled={field.disabled}
+//               // You can also add:
+//               // onChange={(e) => handleInputChange(field.title, e.target.value)}
+//             />
+//           ))}
+//         </div>
+//         <div className="flex justify-end gap-5 mt-5">
+//           <Button
+//             title={"Cancel"}
+//             variant="outlined"
+//             onClick={() => SetShowConnectMonsterModal(false)}
+//           />
+//           <Button
+//             title={"Save"}
+//             // onClick={() => setShowUploadModal(false)}
+//           />
+//         </div>
+//       </Modal>
+//     </div>
+//   );
+// };
+
+// export default ResumeSearch;
+
+// import React, { useState } from "react";
+// import {
+//   Button,
+//   CustomCheckbox,
+//   FormFieldSet,
+//   Modal,
+//   ToggleButton,
+// } from "../../../../../components";
+
+// const JobPosting = () => {
+//   const [showConnectMonsterModal, SetShowConnectMonsterModal] = useState(false);
+//   const [showSettingsModal, SetShowSettingsModal] = useState(false);
+
+//   const options = [
+//     { label: "Option 1", value: "option1" },
+//     { label: "Option 2", value: "option2" },
+//     { label: "Option 3", value: "option3" },
+//     { label: "Option 4", value: "option4" },
+//   ];
+
+//   const formFields = [
+//     {
+//       title: "Username",
+//       placeholder: "Enter Username",
+//       type: "text",
+//       required: true,
+//     },
+//     {
+//       title: "Display name",
+//       placeholder: "Enter Display Name",
+//       type: "text",
+//       required: true,
+//     },
+//     {
+//       title: "CAT",
+//       placeholder: "Enter CAT",
+//       type: "text",
+//       required: true,
+//     },
+//     {
+//       title: "Subscription (Annually)",
+//       placeholder: "Enter Subscription",
+//       type: "text",
+//       required: true,
+//     },
+//     {
+//       title: "Available",
+//       placeholder: "Enter Available",
+//       type: "text",
+//       value: "0",
+//       disabled: true,
+//     },
+//     {
+//       title: "Downloaded",
+//       placeholder: "Enter Downloaded",
+//       type: "text",
+//       disabled: true,
+//     },
+//   ];
+
+//   return (
+//     <div>
+//       <div className="flex justify-end items-end mb-3 gap-3">
+//         <Button
+//           title="Settings"
+//           size="sm"
+//           variant="outlined"
+//           onClick={() => SetShowSettingsModal(true)}
+//         />
+//         <Button
+//           title="Connect Monster"
+//           size="sm"
+//           //   icon={"place_item"}
+//           onClick={() => SetShowConnectMonsterModal(true)}
+//         />
+//       </div>
+//       <p>
+//         Welcome to the Monster Job posting integration process! Connecting your
+//         monster with Tektree Inc. Enables you to effortlessly publish job
+//         posting directly from Tektree to Monster's platform.
+//       </p>
+//       <div className="font-bold mt-5 mb-2">
+//         Here are the steps to configure the Integrations
+//       </div>
+//       <ol className="list-decimal list-inside">
+//         <li>
+//           Click on <b>"Connect Monster"</b> and provide the necessary details:
+//           Username, Password, CAT, Display name.
+//         </li>
+
+//         <li>Save the entered information to add your account successfully.</li>
+//         <li>
+//           Once saved, you can allocate credits to your team for utilization.
+//         </li>
+//         <li>Embark on your Recruitment Journey</li>
+//       </ol>
+//       <Modal
+//         title="Add Account"
+//         isOpen={showConnectMonsterModal}
+//         onClose={() => SetShowConnectMonsterModal(false)}
+//         width="max-w-4xl"
+//         titleColor={"warning"}
+//       >
+//         {/* <div className="grid grid-cols-3 justify-center gap-4 py-5">
+//           <FormFieldSet
+//             type="text"
+//             title={"Username"}
+//             placeholder="Enter Username"
+//             // value={excelFile}
+//             // onChange={setExcelFile}
+//             required
+//           />
+//           <FormFieldSet
+//             type="text"
+//             title={"Display name"}
+//             placeholder="Enter Display Name"
+//             required
+//           />
+//           <FormFieldSet
+//             type="text"
+//             title={"CAT"}
+//             placeholder="Enter CAT"
+//             required
+//           />
+//           <FormFieldSet
+//             type="text"
+//             title={"Subscription (Annually)"}
+//             placeholder="Enter Subscription"
+//             required
+//           />
+//           <FormFieldSet
+//             type="text"
+//             title={"Available"}
+//             value="0"
+//             placeholder="Enter Available"
+//             disabled
+//           />
+//           <FormFieldSet
+//             type="text"
+//             title={"Downloaded"}
+//             placeholder="Enter Downloaded"
+//             disabled
+//           />
+//         </div> */}
+//         <div className="grid grid-cols-3 gap-4 py-5">
+//           {formFields.map((field, index) => (
+//             <FormFieldSet
+//               key={index}
+//               type={field.type}
+//               title={field.title}
+//               placeholder={field.placeholder}
+//               required={field.required}
+//               value={field.value}
+//               disabled={field.disabled}
+//               // You can also add:
+//               // onChange={(e) => handleInputChange(field.title, e.target.value)}
+//             />
+//           ))}
+//         </div>
+
+//         <div>
+//           <CustomCheckbox
+//             list
+//             color="warning"
+//             options={[
+//               {
+//                 label:
+//                   "Create candidate/pipeline directly (if applied through Monster) ",
+//                 value: "option1",
+//               },
+//             ]}
+//             // selectedValues={item.selectedCheckboxValues}
+//             multiple
+//           />
+//         </div>
+//         <div className="flex justify-end gap-5 mt-5">
+//           <Button
+//             title={"Cancel"}
+//             variant="outlined"
+//             onClick={() => SetShowConnectMonsterModal(false)}
+//           />
+//           <Button
+//             title={"Save"}
+//             // onClick={() => setShowUploadModal(false)}
+//           />
+//         </div>
+//       </Modal>
+//       <Modal
+//         title="Settings"
+//         isOpen={showSettingsModal}
+//         onClose={() => SetShowSettingsModal(false)}
+//         width="max-w-4xl"
+//         titleColor={"warning"}
+//       >
+//         <div className="w-1/3 px-3">
+//           <FormFieldSet
+//             type="multiSelect"
+//             title="Location purchased"
+//             placeholder="select Options"
+//             showSearch
+//             showSelectAll={true}
+//             shadow={true}
+//             options={options}
+//             value="option 1"
+//           />
+//           <div className="mt-5 pl-2">
+//             <div className="grid grid-cols-2 font-medium mb-2 text-sm">
+//               <span>Role</span>
+//               <span>Access</span>
+//             </div>
+//             <div className="space-y-2">
+//               {["Admin", "Owner", "Anyone"].map((role, idx) => (
+//                 <div key={idx} className="grid grid-cols-2 items-center">
+//                   <span>{role}</span>
+//                   <ToggleButton
+//                     // size={size}
+//                     // onChange={onChange}
+//                     // label={label}
+//                     // disabled={disabled}
+//                     // labelPosition={labelPosition}
+//                     isChecked={false}
+//                   />
+//                 </div>
+//               ))}
+//             </div>
+//           </div>
+//         </div>
+//         <div className="flex justify-end gap-5 mt-5">
+//           <Button
+//             title={"Cancel"}
+//             variant="outlined"
+//             onClick={() => SetShowSettingsModal(false)}
+//           />
+//           <Button
+//             title={"Save"}
+//             // onClick={() => setShowUploadModal(false)}
+//           />
+//         </div>
+//       </Modal>
+//     </div>
+//   );
+// };
+
+// export default JobPosting;
+
+// import React, { useRef, useEffect, useState } from "react";
+// import Button from "../Buttons/Button";
+// import SmartTooltip from "./SmartTooltip";
+// import Modal from "../Modal/Modal";
+
+// const CardWithButton = ({
+//   title,
+//   description,
+//   category,
+//   setup = <h2>SetUpModel</h2>,
+// }) => {
+//   const titleRef = useRef(null);
+//   const descRef = useRef(null);
+
+//   const [isTitleOverflowed, setTitleOverflowed] = useState(false);
+//   const [isDescOverflowed, setDescOverflowed] = useState(false);
+//   const [isOpenModal, setIsOpenModal] = useState(false);
+//   const [setupClicked, setSetupClicked] = useState(false);
+
+//   useEffect(() => {
+//     const titleEl = titleRef.current;
+//     const descEl = descRef.current;
+
+//     if (titleEl) {
+//       setTitleOverflowed(titleEl.scrollHeight > titleEl.clientHeight);
+//     }
+
+//     if (descEl) {
+//       setDescOverflowed(descEl.scrollHeight > descEl.clientHeight);
+//     }
+//   }, [title, description]);
+//   //w-96 h-52
+//   return (
+//     <div className="px-4 py-4 text-black flex flex-col justify-between gap-3 self-start w-full h-46 border border-gray-100 rounded-md bg-white shadow-sm">
+//       <div className="flex flex-col gap-3">
+//         <div>
+//           {isTitleOverflowed ? (
+//             <SmartTooltip
+//               noicon={true}
+//               description={title}
+//               variant={"outlined"}
+//             >
+//               {!typeof title === "string" ? (
+//                 <div className="line-clamp-1">{title}</div>
+//               ) : (
+//                 <h5 className="line-clamp-1">{title}</h5>
+//               )}
+//             </SmartTooltip>
+//           ) : !typeof title === "string" ? (
+//             <div className="line-clamp-1">{title}</div>
+//           ) : (
+//             <h5 ref={titleRef} className="line-clamp-1">
+//               {title}
+//             </h5>
+//           )}
+//         </div>
+
+//         <div>
+//           <div ref={descRef} className="line-clamp-2 text-xs">
+//             {description}
+//           </div>
+//           {isDescOverflowed && (
+//             <button
+//               className="bg-transparent border-0 outline-non text-primary hover:text-primary-600 text-xs"
+//               onClick={() => setIsOpenModal(true)}
+//             >
+//               Readmore
+//             </button>
+//           )}
+//         </div>
+//       </div>
+
+//       <div className="self-end">
+//         <Button
+//           title="SetUp"
+//           type="button"
+//           size="sm"
+//           variant="outlined"
+//           onClick={() => setSetupClicked(true)}
+//           titleColor={"primary"}
+//         />
+//       </div>
+
+//       <Modal
+//         isOpen={isOpenModal}
+//         onClose={() => setIsOpenModal(false)}
+//         title={title}
+//         width="max-w-4xl"
+//         closeOnOutsideClick
+//       >
+//         <div>{description}</div>
+//       </Modal>
+
+//       {setupClicked && (
+//         <Modal
+//           isOpen={setupClicked}
+//           onClose={() => setSetupClicked(false)}
+//           title="Setup"
+//           width="max-w-4xl"
+//           closeOnOutsideClick
+//         >
+//           {React.cloneElement(setup, {
+//             onConnect: () => setSetupClicked(false),
+//             category,
+//           })}
+//         </Modal>
+//       )}
+//     </div>
+//   );
+// };
+
+// export default CardWithButton;
+
+// import React, { useRef, useEffect, useState } from "react";
+// import Button from "../Buttons/Button";
+// import SmartTooltip from "./SmartTooltip";
+// import Modal from "../Modal/Modal";
+// import { checkAdminAdded } from "../../redux/slices/setting/settingApi";
+// import AddAccountModel from "../../pages/Common/Settings/Configurations/ConfigurationTabs/Integration/AddAccountModel";
+
+// const CardWithButton = ({ title, description, category, type, setup }) => {
+//   const [isTitleOverflowed, setIsTitleOverflowed] = useState(false);
+//   const [isDescOverflowed, setIsDescOverflowed] = useState(false);
+//   const [isOpenModal, setIsOpenModal] = useState(false);
+//   const [setupClicked, setSetupClicked] = useState(false);
+//   const [integrationExists, setIntegrationExists] = useState(false);
+//   const [loadingIntegration, setLoadingIntegration] = useState(true);
+//   const [integrationData, setIntegrationData] = useState(null);
+//   const [editClicked, setEditClicked] = useState(false);
+
+//   const titleRef = useRef(null);
+//   const descRef = useRef(null);
+
+//   // Convert type to number to ensure comparison works
+//   const typeNum = Number(type);
+
+//   // Check if integration exists
+//   const fetchIntegration = async () => {
+//     if (!type || !category) return;
+//     setSetupClicked(false);
+//     setLoadingIntegration(true);
+//     try {
+//       const res = await checkAdminAdded({
+//         coll: "Integration",
+//         fil: {
+//           category: { type: "NONE", value: category },
+//           type: { type: "NONE", value: typeNum },
+//         },
+//       });
+
+//       // if (
+//       //   typeNum === 1 &&
+//       //   res?.data?.data &&
+//       //   Object.keys(res.data.data).length > 0
+//       // ) {
+//       //   setIntegrationExists(true);
+//       // } else {
+//       //   setIntegrationExists(false);
+//       // }
+//       if (res?.data?.data && Object.keys(res.data.data).length > 0) {
+//         setIntegrationExists(true);
+//         setIntegrationData(res.data.data);
+//       } else {
+//         setIntegrationExists(false);
+//       }
+//     } catch (err) {
+//       // console.error("Error checking integration:", err);
+//       // setIntegrationExists(false);
+//       if (err.response?.status === 404) {
+//         setIntegrationExists(false);
+//       } else {
+//         console.error("Error checking integration:", err);
+//         setIntegrationExists(false);
+//       }
+//     } finally {
+//       setLoadingIntegration(false);
+//     }
+//   };
+//   useEffect(() => {
+//     fetchIntegration();
+//   }, [category, typeNum]);
+
+//   // Detect title/description overflow
+//   useEffect(() => {
+//     const titleEl = titleRef.current;
+//     const descEl = descRef.current;
+
+//     if (titleEl)
+//       setIsTitleOverflowed(titleEl.scrollHeight > titleEl.clientHeight);
+//     if (descEl) setIsDescOverflowed(descEl.scrollHeight > descEl.clientHeight);
+//   }, [title, description]);
+//   const handleIntegrationAdded = async () => {
+//     await new Promise((resolve) => setTimeout(resolve, 200));
+//     await fetchIntegration(); // Re-check backend
+//     setSetupClicked(false); // Close setup modal
+//   };
+
+//   return (
+//     <div className="px-4 py-4 text-black flex flex-col justify-between gap-3 self-start w-full h-46 border border-gray-100 rounded-md bg-white shadow-sm">
+//       {/* Title */}
+//       <div>
+//         {isTitleOverflowed ? (
+//           <SmartTooltip noicon={true} description={title} variant="outlined">
+//             {typeof title !== "string" ? (
+//               <div className="line-clamp-1">{title}</div>
+//             ) : (
+//               <h5 className="line-clamp-1">{title}</h5>
+//             )}
+//           </SmartTooltip>
+//         ) : typeof title !== "string" ? (
+//           <div className="line-clamp-1">{title}</div>
+//         ) : (
+//           <h5 ref={titleRef} className="line-clamp-1">
+//             {title}
+//           </h5>
+//         )}
+//       </div>
+
+//       {/* Description */}
+//       <div>
+//         <div ref={descRef} className="line-clamp-2 text-xs">
+//           {description}
+//         </div>
+//         {isDescOverflowed && (
+//           <button
+//             className="bg-transparent border-0 outline-none text-primary hover:text-primary-600 text-xs"
+//             onClick={() => setIsOpenModal(true)}
+//           >
+//             Readmore
+//           </button>
+//         )}
+//       </div>
+
+//       {/* SetUp Button */}
+//       {/* <div className="self-end">
+//         <Button
+//           title={integrationExists && typeNum === 1 ? "Setup" : "SetUp"}
+//           type="button"
+//           size="sm"
+//           variant="outlined"
+//           onClick={() => setSetupClicked(true)}
+//           titleColor="primary"
+//           disabled={loadingIntegration || (integrationExists && typeNum === 1)}
+//         />
+//       </div> */}
+//       {/* SetUp Button */}
+//       <div className="self-end flex gap-2">
+//         <Button
+//           title={
+//             loadingIntegration
+//               ? "Checking..."
+//               : integrationExists
+//               ? "Already Added"
+//               : "Setup"
+//           }
+//           type="button"
+//           variant={integrationExists ? "outlined" : "outlined"}
+//           size="sm"
+//           color={integrationExists ? "secondary" : "primary"}
+//           disabled={loadingIntegration || integrationExists}
+//           onClick={() => !integrationExists && setSetupClicked(true)}
+//           className={`${
+//             integrationExists
+//               ? "cursor-not-allowed border-gray-300 text-gray-400"
+//               : "hover:opacity-90"
+//           }`}
+//         />
+//         {integrationExists && (
+//           <Button
+//             title="Edit"
+//             type="button"
+//             variant="outlined"
+//             size="sm"
+//             color="primary"
+//             onClick={() => setEditClicked(true)}
+//             className="hover:opacity-90"
+//           />
+//         )}
+//       </div>
+
+//       {/* Description Modal */}
+//       <Modal
+//         isOpen={isOpenModal}
+//         onClose={() => setIsOpenModal(false)}
+//         title={title}
+//         width="max-w-4xl"
+//         closeOnOutsideClick
+//       >
+//         <div>{description}</div>
+//       </Modal>
+
+//       {/* Setup Modal */}
+//       {/* This is the modal here i want to work prudhvi */}
+//       {setupClicked && (
+//         <div className="fixed top-20 bottom-10 left-20 right-0  z-55 bg-white flex flex-col overflow-auto animate-fadeIn px-5">
+//           {React.cloneElement(setup, {
+//             // onConnect: () => setSetupClicked(false),
+//             onConnect: handleIntegrationAdded,
+//             category,
+//             onClose: () => setSetupClicked(false),
+//           })}
+//         </div>
+//       )}
+//       {editClicked && (
+//         <Modal
+//           isOpen={editClicked}
+//           onClose={() => setEditClicked(false)}
+//           title="Edit Account"
+//           width="max-w-4xl"
+//           closeOnOutsideClick
+//         >
+//           <AddAccountModel
+//             category={category}
+//             type={type}
+//             onCancel={() => setEditClicked(false)}
+//             onConnect={handleIntegrationAdded}
+//             existingData={integrationData} // pass existing data
+//             isEditMode={true}
+//           />
+//         </Modal>
+//       )}
+//     </div>
+//   );
+// };
+
+// export default CardWithButton;
