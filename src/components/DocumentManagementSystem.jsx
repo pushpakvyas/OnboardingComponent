@@ -1,14 +1,14 @@
+// src/pages/DocumentManagementSystem.jsx
 import React, { useState } from "react";
 import { useDocuments } from "../hooks/useDocuments";
 import { useUserFieldData } from "../hooks/useUserFieldData";
 import { DocumentTable } from "../components/document/DocumentTable";
-import { DocumentPreview } from "../components/document/DocumentPreview";
+import DocumentPreview from "../components/document/DocumentPreview";
 import { DocumentEditor } from "../components/document/DocumentEditor";
 import { ApplicantFillView } from "../components/workflow/ApplicantFillView";
 import { ApproverReviewView } from "../components/workflow/ApproverReviewView";
 import { DocumentDrawer } from "../components/drawer/DocumentDrawer";
-import { processPDF } from "../utils/pdfProcessor";
-import { processWord } from "../utils/wordProcessor";
+import { processPDF, pdfBufferStore } from "../utils/pdfProcessor";
 import { downloadPDF } from "../utils/pdfGenerator";
 
 const DocumentManagementSystem = () => {
@@ -18,7 +18,7 @@ const DocumentManagementSystem = () => {
   const [currentUserId, setCurrentUserId] = useState("");
   const [currentUserRole, setCurrentUserRole] = useState("");
   const [selectedApplicant, setSelectedApplicant] = useState("");
-  const [tempPages, setTempPages] = useState([]);
+  const [tempDocumentData, setTempDocumentData] = useState(null);
   const [isDesignMode, setIsDesignMode] = useState(false);
 
   const {
@@ -52,6 +52,8 @@ const DocumentManagementSystem = () => {
     if (window.confirm("Are you sure you want to delete this document?")) {
       deleteDocument(docId);
       deleteDocumentData(docId);
+      // also remove buffer from in-memory store
+      pdfBufferStore.delete(docId);
     }
   };
 
@@ -88,23 +90,12 @@ const DocumentManagementSystem = () => {
     );
   };
 
-  // const handleApplicantFill = (doc) => {
-  //   const userId = prompt("Enter your email/name:");
-  //   if (!userId || !userId.trim()) return;
-
-  //   setCurrentUserId(userId);
-  //   setCurrentUserRole("applicant");
-  //   setCurrentDocument(doc);
-  //   setView("applicant-fill");
-  // };
-
   const handleApplicantFill = (doc) => {
     const userId = prompt("Enter your email/name:");
     if (!userId || !userId.trim()) return;
 
     const workflowApplicants =
       doc.workflows?.map((w) => w.applicant?.trim()).filter(Boolean) || [];
-
     const sharedUsers = doc.sharedWith || [];
 
     const isAuthorized =
@@ -124,33 +115,15 @@ const DocumentManagementSystem = () => {
     setCurrentUserId(userId);
     setCurrentUserRole("applicant");
     setCurrentDocument(doc);
-    // setPages(doc.pages || []);
-    // setDroppedFields(doc.droppedFields || {});
-    // setCurrentPageNum(1);
     setView("applicant-fill");
   };
 
-  // const handleApproverReview = (doc) => {
-  //   const approverId = prompt("Enter your approver email/name:");
-  //   if (!approverId || !approverId.trim()) return;
-
-  //   const applicants = getSubmittedApplicants(doc.id);
-
-  //   if (applicants.length === 0) {
-  //     alert("No applicants have submitted data for this document yet.");
-  //     return;
-  //   }
-
-  //   setCurrentUserId(approverId);
-  //   setCurrentUserRole("approver");
-  //   setSelectedApplicant(applicants[0]);
-  //   setCurrentDocument(doc);
-  //   setView("approver-review");
-  // };
   const handleApproverReview = (doc) => {
     const approverId = prompt("Enter your approver email/name:");
     if (!approverId || !approverId.trim()) return;
+
     const hasWorkflows = doc.workflows && doc.workflows.length > 0;
+
     if (hasWorkflows) {
       const workflowApprovers = doc.workflows.flatMap(
         (w) =>
@@ -159,7 +132,9 @@ const DocumentManagementSystem = () => {
             .map((a) => a.trim())
             .filter(Boolean) || []
       );
+
       const isAuthorized = workflowApprovers.includes(approverId.trim());
+
       if (!isAuthorized) {
         alert(
           "Access denied. You are not listed as an approver for this document.\n\n" +
@@ -168,11 +143,6 @@ const DocumentManagementSystem = () => {
         );
         return;
       }
-    } else {
-      console.log(
-        "No workflow configured - allowing access to approver:",
-        approverId
-      );
     }
 
     const applicants = Object.keys(userFieldData[doc.id] || {}).filter(
@@ -188,9 +158,6 @@ const DocumentManagementSystem = () => {
     setCurrentUserRole("approver");
     setSelectedApplicant(applicants[0]);
     setCurrentDocument(doc);
-    // setPages(doc.pages || []);
-    // setDroppedFields(doc.droppedFields || {});
-    // setCurrentPageNum(1);
     setView("approver-review");
   };
 
@@ -203,7 +170,6 @@ const DocumentManagementSystem = () => {
     updateUserStatus(currentDocument.id, currentUserId, "submitted", {
       submittedAt: new Date().toISOString(),
     });
-
     alert(
       "Your data has been saved! The document is now ready for approver review."
     );
@@ -223,7 +189,6 @@ const DocumentManagementSystem = () => {
       approver: currentUserId,
       approvedAt: new Date().toISOString(),
     });
-
     alert(`Application ${decision}!`);
     setView("table");
     setCurrentDocument(null);
@@ -255,34 +220,48 @@ const DocumentManagementSystem = () => {
   };
 
   // Drawer Actions
-  const handleFileProcess = async (file, pages = null, isDesign = false) => {
-    if (pages) {
-      setTempPages(pages);
-      setIsDesignMode(isDesign);
+  const handleFileProcess = async (file, pdfData = null, isDesign = false) => {
+    console.log("handleFileProcess called", { file, pdfData, isDesign });
+
+    // For design mode with blank pages
+    if (pdfData && pdfData.isBlankDocument) {
+      console.log("Setting blank document data");
+      setTempDocumentData(pdfData);
+      setIsDesignMode(true);
       return;
     }
 
-    if (!file) return;
+    if (!file) {
+      console.warn("No file provided");
+      return;
+    }
 
     const fileType = file.name.split(".").pop().toLowerCase();
 
-    try {
-      let pageImages;
-      if (fileType === "pdf") {
-        pageImages = await processPDF(file);
-      } else {
-        pageImages = await processWord(file);
-      }
+    if (fileType !== "pdf") {
+      alert("Only PDF files are supported for upload.");
+      return;
+    }
 
-      setTempPages(pageImages);
+    try {
+      console.log("Processing PDF file...");
+      const processedData = await processPDF(file);
+      console.log("PDF processed successfully:", processedData);
+
+      setTempDocumentData(processedData);
       setIsDesignMode(false);
     } catch (error) {
       console.error("Error processing file:", error);
-      alert("Failed to process file. Please try again.");
+      alert("Failed to process PDF file. Please try again.");
     }
   };
 
   const handleSaveFromDrawer = (documentForm, workflows) => {
+    console.log(
+      "Saving document from drawer, tempDocumentData:",
+      tempDocumentData
+    );
+
     const newDoc = {
       id: Date.now().toString(),
       referenceId: `DOC-${Date.now()}`,
@@ -294,30 +273,39 @@ const DocumentManagementSystem = () => {
       createdBy: `Current User_${Date.now()}`,
       createdOn: new Date().toISOString(),
       workflows: workflows || [],
-      pages: tempPages,
+      // do NOT persist raw ArrayBuffer here
+      // keep a base64 fallback only if you plan to persist to backend/localstorage
+      arrayBufferBase64: tempDocumentData?.arrayBufferBase64 || null,
+      pages: tempDocumentData?.pages || [],
       droppedFields: {},
       status: "active",
+      isBlankDocument: tempDocumentData?.isBlankDocument || false,
     };
 
+    // Store raw ArrayBuffer in in-memory store keyed by document id
+    if (tempDocumentData?.arrayBuffer) {
+      pdfBufferStore.set(newDoc.id, tempDocumentData.arrayBuffer);
+    }
+
+    console.log("New document object:", newDoc);
+
     if (isDesignMode) {
-      // For design mode, go to editor
       setCurrentDocument(newDoc);
       setDrawerOpen(false);
-      setTempPages([]);
+      setTempDocumentData(null);
       setView("editor");
       setIsDesignMode(false);
     } else {
-      // For upload mode, save and go to table
       addDocument(newDoc);
       setDrawerOpen(false);
-      setTempPages([]);
+      setTempDocumentData(null);
       setIsDesignMode(false);
       setView("table");
     }
   };
 
   return (
-    <div className="w-screen h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
       {view === "table" && (
         <DocumentTable
           documents={documents}
@@ -333,33 +321,36 @@ const DocumentManagementSystem = () => {
         />
       )}
 
-      {view === "preview" && currentDocument && (
+      {view === "preview" && (
         <DocumentPreview
           document={currentDocument}
           onBack={() => {
             setView("table");
             setCurrentDocument(null);
           }}
+          onEdit={() => {
+            setView("editor");
+          }}
         />
       )}
 
-      {view === "editor" && currentDocument && (
+      {view === "editor" && (
         <DocumentEditor
           document={currentDocument}
           onSave={handleSaveFromEditor}
           onBack={() => {
-            setView("table");
+            setView(currentDocument?.id ? "table" : "table");
             setCurrentDocument(null);
           }}
         />
       )}
 
-      {view === "applicant-fill" && currentDocument && (
+      {view === "applicant-fill" && (
         <ApplicantFillView
           document={currentDocument}
           userId={currentUserId}
-          userFieldData={userFieldData}
-          onUpdateFieldValue={handleUpdateApplicantField}
+          userFieldData={userFieldData[currentDocument?.id]?.[currentUserId]}
+          onUpdateField={handleUpdateApplicantField}
           onSave={handleSaveApplicantData}
           onBack={() => {
             setView("table");
@@ -370,19 +361,29 @@ const DocumentManagementSystem = () => {
         />
       )}
 
-      {view === "approver-review" && currentDocument && (
+      {view === "approver-review" && (
         <ApproverReviewView
           document={currentDocument}
           approverId={currentUserId}
-          applicants={getSubmittedApplicants(currentDocument.id)}
-          userFieldData={userFieldData}
-          onUpdateFieldValue={handleUpdateApproverField}
-          onDecision={handleApproverDecision}
+          selectedApplicant={selectedApplicant}
+          onSelectApplicant={setSelectedApplicant}
+          applicants={getSubmittedApplicants(currentDocument?.id)}
+          userFieldData={
+            userFieldData[currentDocument?.id]?.[selectedApplicant]
+          }
+          onUpdateField={handleUpdateApproverField}
+          onApprove={(applicantId) =>
+            handleApproverDecision("approved", applicantId)
+          }
+          onReject={(applicantId) =>
+            handleApproverDecision("rejected", applicantId)
+          }
           onBack={() => {
             setView("table");
             setCurrentDocument(null);
             setCurrentUserId("");
             setCurrentUserRole("");
+            setSelectedApplicant("");
           }}
         />
       )}
@@ -391,7 +392,7 @@ const DocumentManagementSystem = () => {
         open={drawerOpen}
         onClose={() => {
           setDrawerOpen(false);
-          setTempPages([]);
+          setTempDocumentData(null);
           setIsDesignMode(false);
         }}
         onSave={handleSaveFromDrawer}

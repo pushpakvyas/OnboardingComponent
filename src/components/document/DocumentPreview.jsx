@@ -1,124 +1,125 @@
-import React from "react";
-import { ChevronLeft } from "lucide-react";
+// src/components/document/DocumentPreview.jsx
+import React, { useState, useEffect } from "react";
+import { ChevronLeft, ChevronRight, Edit, X } from "lucide-react";
+import { CanvasPageRenderer } from "./CanvasPageRenderer";
 import { A4_WIDTH, A4_HEIGHT } from "../../constants/layoutConstants";
+import { pdfBufferStore, base64ToArrayBuffer } from "../../utils/pdfProcessor";
 
-export const DocumentPreview = ({ document, onBack }) => {
-  const { pages, droppedFields } = document;
+export const DocumentPreview = ({ document, onBack, onEdit }) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pdfBuffer, setPdfBuffer] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const ensureBuffer = async () => {
+      if (!document) return;
+
+      // First try in-memory store
+      const inMemory = pdfBufferStore.get(document.id);
+      if (inMemory) {
+        if (mounted) setPdfBuffer(inMemory);
+        return;
+      }
+
+      // Fallback: if saved base64 exists, convert once and cache it
+      if (document.arrayBufferBase64) {
+        try {
+          const ab = base64ToArrayBuffer(document.arrayBufferBase64);
+          pdfBufferStore.set(document.id, ab);
+          if (mounted) setPdfBuffer(ab);
+          return;
+        } catch (err) {
+          console.error("Failed to convert stored base64 to buffer:", err);
+        }
+      }
+
+      // No buffer available
+      if (mounted) setPdfBuffer(null);
+    };
+
+    ensureBuffer();
+
+    return () => {
+      mounted = false;
+    };
+  }, [document]);
+
+  if (!document) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div>No document selected</div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex-1 flex flex-col">
-      <div className="bg-white border-b px-6 py-3 flex items-center justify-between">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900"
-        >
-          <ChevronLeft className="w-5 h-5" />
-          Back to Documents
-        </button>
-        <h2 className="text-xl font-semibold">{document.documentName}</h2>
-        <div className="w-32"></div>
-      </div>
-      <div className="flex-1 flex justify-center overflow-auto bg-gray-100 p-6">
-        <div className="flex flex-col justify-center items-start space-y-6">
-          {pages.map((page) => (
-            <div
-              key={page.number}
-              className="bg-white shadow-lg"
-              style={{ width: A4_WIDTH, height: A4_HEIGHT }}
+    <div className="flex h-screen bg-gray-100">
+      <div className="flex-1 flex flex-col">
+        <div className="bg-white border-b px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onBack}
+              className="p-2 hover:bg-gray-100 rounded-lg"
             >
-              <div
-                className="relative"
-                style={{ width: A4_WIDTH, height: A4_HEIGHT }}
-              >
-                <img
-                  src={page.image}
-                  alt={`Page ${page.number}`}
-                  className="w-full h-full"
-                />
-                {(droppedFields[page.number] || []).map((field) => (
-                  <div
-                    key={field.id}
-                    className="absolute bg-transparent rounded p-2"
-                    style={{ left: field.x, top: field.y }}
-                  >
-                    {field.showLabel !== false &&
-                      field.labelPosition === "top" && (
-                        <div className="text-xs font-semibold mb-1">
-                          {field.label}
-                          {field.required && (
-                            <span className="text-red-500 ml-0.5">*</span>
-                          )}
-                        </div>
-                      )}
-                    {field.type === "checkbox" && (
-                      <input type="checkbox" className="w-4 h-4" readOnly />
-                    )}
-                    {(field.type === "text" ||
-                      field.type === "name" ||
-                      field.type === "email" ||
-                      field.type === "phone") && (
-                      <input
-                        type="text"
-                        className="border rounded px-2 py-1 text-sm"
-                        style={{ width: field.width || 200 }}
-                        readOnly
-                      />
-                    )}
-                    {field.type === "date" && (
-                      <input
-                        type="date"
-                        className="border rounded px-2 py-1 text-sm"
-                        style={{ width: field.width || 200 }}
-                        readOnly
-                      />
-                    )}
-                    {field.type === "select" && (
-                      <select
-                        className="border rounded px-2 py-1 text-sm"
-                        style={{ width: field.width || 200 }}
-                      >
-                        {(field.options || []).map((opt, i) => (
-                          <option key={i}>{opt}</option>
-                        ))}
-                      </select>
-                    )}
-                    {field.type === "signature" && (
-                      <input
-                        type="text"
-                        className="border rounded px-2 py-1 text-sm"
-                        style={{
-                          width: field.width || 200,
-                          fontFamily: "cursive",
-                        }}
-                        readOnly
-                      />
-                    )}
-                    {field.type === "image" && (
-                      <div
-                        className="border rounded p-2 text-xs"
-                        style={{
-                          width: field.width || 150,
-                          height: field.height || 100,
-                        }}
-                      >
-                        {field.imageSrc ? (
-                          <img
-                            src={field.imageSrc}
-                            alt={field.alt}
-                            className="w-full h-full object-contain"
-                          />
-                        ) : (
-                          "No image"
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <X className="w-5 h-5" />
+            </button>
+            <div>
+              <h2 className="text-xl font-semibold">{document.documentName}</h2>
+              <p className="text-sm text-gray-500">Document Preview</p>
             </div>
-          ))}
+          </div>
+          <button
+            onClick={onEdit}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+          >
+            <Edit className="w-4 h-4" />
+            Edit Document
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-auto p-8 flex justify-center">
+          <div className="max-w-4xl">
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg hover:bg-white disabled:opacity-50"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <span className="text-sm font-medium">
+                Page {currentPage} of {document.pages?.length || 0}
+              </span>
+              <button
+                onClick={() =>
+                  setCurrentPage(
+                    Math.min(document.pages.length, currentPage + 1)
+                  )
+                }
+                disabled={currentPage === document.pages.length}
+                className="p-2 rounded-lg hover:bg-white disabled:opacity-50"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div
+              className="bg-white shadow-lg"
+              style={{ width: `${A4_WIDTH}px`, height: `${A4_HEIGHT}px` }}
+            >
+              <CanvasPageRenderer
+                pdfData={pdfBuffer || document.arrayBufferBase64}
+                pageNumber={currentPage}
+                width={A4_WIDTH}
+                height={A4_HEIGHT}
+                isBlankDocument={document.isBlankDocument}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 };
+export default DocumentPreview;

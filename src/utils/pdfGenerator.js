@@ -1,212 +1,205 @@
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, rgb } from "pdf-lib";
 import { A4_WIDTH, A4_HEIGHT } from "../constants/layoutConstants";
 
-const drawFilledField = async (ctx, field, fieldValue) => {
-  if (fieldValue === undefined || fieldValue === null || fieldValue === "") {
-    return;
-  }
+const PDF_A4_WIDTH = 595.28;
+const PDF_A4_HEIGHT = 841.89;
 
-  ctx.font = `${field.fontSize || 14}px ${field.fontFamily || "Arial"}`;
-  ctx.fillStyle = field.fontColor || "#000000";
-
-  let textX = field.x;
-  let textY = field.y;
-
-  if (field.showLabel !== false && field.labelPosition === "top") {
-    textY += 20;
-  }
-
-  textX += 8;
-  textY += 20;
-
-  if (field.type === "checkbox") {
-    const isChecked = fieldValue === true || fieldValue === "true";
-    if (isChecked) {
-      ctx.strokeStyle = field.fontColor || "#000000";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(textX, textY - 2);
-      ctx.lineTo(textX + 4, textY + 2);
-      ctx.lineTo(textX + 10, textY - 6);
-      ctx.stroke();
-    }
-  } else if (field.type === "signature") {
-    ctx.font = `${field.fontSize || 14}px cursive`;
-    ctx.fillText(fieldValue.toString(), textX, textY);
-  } else {
-    ctx.fillText(fieldValue.toString(), textX, textY);
-  }
+const pixelToPoint = (pixel) => {
+  return (pixel / A4_WIDTH) * PDF_A4_WIDTH;
 };
 
-const drawTemplateField = async (ctx, field) => {
-  const fieldWidth = field.width || 200;
-  const fieldHeight = field.type === "image" ? field.height || 100 : 30;
-  let boxX = field.x;
-  let boxY = field.y;
-
-  if (field.showLabel !== false) {
-    ctx.font = "12px Arial";
-    ctx.fillStyle = "#000000";
-
-    const labelText = `${field.label}${field.required ? " *" : ""}`;
-
-    if (field.labelPosition === "top") {
-      ctx.fillText(labelText, boxX, boxY + 12);
-      boxY += 20;
-    } else if (field.labelPosition === "left") {
-      ctx.fillText(labelText + ":", boxX, boxY + 20);
-      const labelWidth = ctx.measureText(labelText + ": ").width;
-      boxX += labelWidth + 5;
-    }
+const base64ToArrayBuffer = (base64) => {
+  const binary = atob(base64);
+  const len = binary.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binary.charCodeAt(i);
   }
+  return bytes.buffer;
+};
 
-  ctx.strokeStyle = "#3B82F6";
-  ctx.lineWidth = 2;
-  ctx.setLineDash([]);
+const addFormField = (form, pdfPage, field, pageHeight) => {
+  const x = pixelToPoint(field.x);
+  const width = pixelToPoint(field.width || 150);
+  const height = pixelToPoint(field.height || 36);
 
-  if (field.type === "checkbox") {
-    ctx.strokeRect(boxX + 5, boxY + 5, 20, 20);
-  } else if (field.type === "image") {
-    ctx.strokeRect(boxX, boxY, fieldWidth, fieldHeight);
+  const y = pageHeight - pixelToPoint(field.y) - height;
+  const fieldName = `field_${field.id.replace(/[^a-zA-Z0-9]/g, "_")}`;
 
-    if (field.imageSrc) {
-      try {
-        const fieldImg = new Image();
-        fieldImg.src = field.imageSrc;
-        await new Promise((resolve, reject) => {
-          fieldImg.onload = resolve;
-          fieldImg.onerror = reject;
-          setTimeout(reject, 1000);
-        });
-        ctx.drawImage(fieldImg, boxX, boxY, fieldWidth, fieldHeight);
-      } catch (e) {
-        ctx.fillStyle = "#9CA3AF";
-        ctx.font = "12px Arial";
-        ctx.setLineDash([]);
-        ctx.fillText("Image", boxX + 10, boxY + fieldHeight / 2);
-        ctx.setLineDash([5, 3]);
-      }
-    } else {
-      ctx.fillStyle = "#9CA3AF";
-      ctx.font = "12px Arial";
-      ctx.setLineDash([]);
-      ctx.fillText("No image", boxX + 10, boxY + fieldHeight / 2);
-      ctx.setLineDash([5, 3]);
-    }
-  } else {
-    ctx.strokeRect(boxX, boxY, fieldWidth, fieldHeight);
+  try {
+    let createdField;
 
-    ctx.setLineDash([]);
-    ctx.fillStyle = "#9CA3AF";
-    ctx.font = `${(field.fontSize || 14) - 2}px ${field.fontFamily || "Arial"}`;
-
-    let placeholderText = "";
     switch (field.type) {
-      case "text":
-        placeholderText = "Text input";
+      case "checkbox":
+        createdField = form.createCheckBox(fieldName);
+        createdField.addToPage(pdfPage, {
+          x,
+          y,
+          width: pixelToPoint(20),
+          height: pixelToPoint(20),
+          borderWidth: 2,
+          borderColor: rgb(0, 0, 1),
+          backgroundColor: rgb(0.95, 0.95, 1),
+        });
+        if (field.value === true || field.value === "true") {
+          createdField.check();
+        } else {
+          createdField.uncheck();
+        }
         break;
-      case "name":
-        placeholderText = "Name";
+
+      case "dropdown":
+        createdField = form.createDropdown(fieldName);
+        const options = field.options || ["Option 1", "Option 2", "Option 3"];
+        createdField.addOptions(options);
+        createdField.addToPage(pdfPage, {
+          x,
+          y,
+          width,
+          height,
+          borderWidth: 2,
+          borderColor: rgb(0, 0, 1),
+          backgroundColor: rgb(0.95, 0.95, 1),
+        });
+        if (field.value && options.includes(field.value)) {
+          createdField.select(field.value);
+        }
+        createdField.setFontSize(field.fontSize || 12);
         break;
-      case "email":
-        placeholderText = "Email address";
-        break;
-      case "phone":
-        placeholderText = "Phone number";
-        break;
-      case "date":
-        placeholderText = "DD/MM/YYYY";
-        break;
-      case "signature":
-        placeholderText = "Signature";
-        ctx.font = `${(field.fontSize || 14) - 2}px cursive`;
-        break;
-      case "select":
-        placeholderText = field.options?.[0] || "Select...";
-        break;
+
       default:
-        placeholderText = "Input";
+        createdField = form.createTextField(fieldName);
+        createdField.addToPage(pdfPage, {
+          x,
+          y,
+          width,
+          height:
+            field.type === "textarea"
+              ? pixelToPoint(field.height || 80)
+              : height,
+          borderWidth: 2,
+          borderColor: rgb(0, 0, 1),
+          backgroundColor: rgb(0.95, 0.95, 1),
+        });
+
+        if (field.type === "textarea") {
+          createdField.enableMultiline();
+        }
+
+        if (field.value) {
+          createdField.setText(String(field.value));
+        }
+
+        createdField.setFontSize(field.fontSize || 12);
+        createdField.enableReadOnly(false);
+
+        if (field.required) {
+          createdField.enableRequired();
+        }
+        break;
     }
 
-    ctx.fillText(placeholderText, boxX + 8, boxY + 20);
-    ctx.setLineDash([5, 3]);
+    console.log(`✅ Added ${field.type} field: ${fieldName}`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Failed to add field ${fieldName}:`, error);
+    return false;
   }
-
-  ctx.setLineDash([]);
 };
 
 export const generatePDF = async (doc, userFieldData = null, userId = null) => {
-  if (!doc.pages || doc.pages.length === 0) {
-    throw new Error("No pages to download");
-  }
+  try {
+    if (!doc.pages || doc.pages.length === 0) {
+      throw new Error("No pages to download");
+    }
 
-  const pdfDoc = await PDFDocument.create();
+    let pdfDoc;
 
-  for (const page of doc.pages) {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width = A4_WIDTH;
-    canvas.height = A4_HEIGHT;
+    if (doc.arrayBufferBase64 && !doc.isBlankDocument) {
+      const arrayBuffer = base64ToArrayBuffer(doc.arrayBufferBase64);
+      pdfDoc = await PDFDocument.load(arrayBuffer, {
+        updateMetadata: false,
+        ignoreEncryption: true,
+      });
+      console.log("Loaded original PDF");
+    } else {
+      pdfDoc = await PDFDocument.create();
+      for (let i = 0; i < doc.pages.length; i++) {
+        pdfDoc.addPage([PDF_A4_WIDTH, PDF_A4_HEIGHT]);
+      }
+      console.log("Created blank PDF");
+    }
 
-    const img = new Image();
-    img.src = page.image;
-    await new Promise((resolve) => {
-      img.onload = resolve;
-    });
-    ctx.drawImage(img, 0, 0, A4_WIDTH, A4_HEIGHT);
+    const form = pdfDoc.getForm();
+    const pages = pdfDoc.getPages();
 
-    if (doc.droppedFields && doc.droppedFields[page.number]) {
-      const fields = doc.droppedFields[page.number];
+    let totalFieldsAdded = 0;
 
-      for (const field of fields) {
-        ctx.save();
+    for (let i = 0; i < pages.length; i++) {
+      const pageNum = i + 1;
+      const pdfPage = pages[i];
 
-        if (userId && userFieldData) {
-          const fieldValue = userFieldData[doc.id]?.[userId]?.[field.id];
-          await drawFilledField(ctx, field, fieldValue);
-        } else {
-          await drawTemplateField(ctx, field);
+      if (doc.droppedFields && doc.droppedFields[pageNum]) {
+        const fields = doc.droppedFields[pageNum];
+
+        for (const field of fields) {
+          let fieldData = { ...field };
+
+          if (userId && userFieldData?.[doc.id]?.[userId]?.[field.id]) {
+            fieldData.value = userFieldData[doc.id][userId][field.id];
+          }
+
+          const success = addFormField(form, pdfPage, fieldData, PDF_A4_HEIGHT);
+          if (success) totalFieldsAdded++;
         }
-
-        ctx.restore();
       }
     }
 
-    const imageBytes = await new Promise((resolve) => {
-      canvas.toBlob(async (blob) => {
-        const arrayBuffer = await blob.arrayBuffer();
-        resolve(arrayBuffer);
-      }, "image/png");
+    console.log(`Added ${totalFieldsAdded} form fields to PDF`);
+
+    const pdfBytes = await pdfDoc.save({
+      useObjectStreams: false,
+      addDefaultPage: false,
+      updateFieldAppearances: true,
     });
 
-    const image = await pdfDoc.embedPng(imageBytes);
-    const pdfPage = pdfDoc.addPage([A4_WIDTH, A4_HEIGHT]);
-
-    pdfPage.drawImage(image, {
-      x: 0,
-      y: 0,
-      width: A4_WIDTH,
-      height: A4_HEIGHT,
-    });
+    return new Blob([pdfBytes], { type: "application/pdf" });
+  } catch (error) {
+    console.error("Error generating PDF:", error);
+    throw error;
   }
-
-  const pdfBytes = await pdfDoc.save();
-  return new Blob([pdfBytes], { type: "application/pdf" });
 };
 
 export const downloadPDF = async (doc, userFieldData, userId) => {
   try {
+    console.log("Downloading PDF:", doc.documentName);
+
+    const fieldCount = Object.values(doc.droppedFields || {}).flat().length;
+
+    if (fieldCount === 0) {
+      alert("This document has no form fields to export.");
+      return;
+    }
+
     const blob = await generatePDF(doc, userFieldData, userId);
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = userId
+
+    const filename = userId
       ? `${doc.documentName}_${userId}.pdf`
-      : `${doc.documentName.replace(/\s+/g, "_")}_template.pdf`;
+      : `${doc.documentName.replace(/\s+/g, "_")}.pdf`;
+
+    link.download = filename;
+    document.body.appendChild(link);
     link.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(link);
+
+    setTimeout(() => URL.revokeObjectURL(url), 100);
+
+    console.log("✅ PDF downloaded with", fieldCount, "editable fields");
   } catch (error) {
-    console.error("Error creating PDF:", error);
-    alert("Failed to download PDF. Please try again.");
+    console.error("Download error:", error);
+    alert(`Failed to download PDF: ${error.message}`);
   }
 };
