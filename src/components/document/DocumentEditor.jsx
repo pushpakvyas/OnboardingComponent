@@ -7,6 +7,7 @@ import { DocumentFieldConfig } from "./DocumentFieldConfig";
 import { DraggableField } from "../fields/Draggablefield";
 import { CanvasPageRenderer } from "./CanvasPageRenderer";
 import { A4_WIDTH, A4_HEIGHT } from "../../constants/layoutConstants";
+import { pdfBufferStore } from "../../utils/pdfProcessor";
 
 export const DocumentEditor = ({ document, onSave, onBack }) => {
   const {
@@ -25,6 +26,9 @@ export const DocumentEditor = ({ document, onSave, onBack }) => {
     updateFieldPosition,
     addBlankPage,
   } = useDocumentEditor(document.pages, document.droppedFields);
+
+  // Get PDF buffer from in-memory store
+  const pdfBuffer = pdfBufferStore.get(document.id);
 
   const handleDrop = (e) => {
     e.preventDefault();
@@ -60,6 +64,10 @@ export const DocumentEditor = ({ document, onSave, onBack }) => {
       alert("Please add at least one field before saving.");
     }
   };
+
+  const selectedFieldData = selectedField
+    ? droppedFields[currentPageNum]?.find((f) => f.id === selectedField)
+    : null;
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -144,7 +152,7 @@ export const DocumentEditor = ({ document, onSave, onBack }) => {
                 }}
               >
                 <CanvasPageRenderer
-                  pdfData={document.arrayBufferBase64}
+                  arrayBuffer={pdfBuffer}
                   pageNumber={currentPageNum}
                   width={A4_WIDTH}
                   height={A4_HEIGHT}
@@ -171,16 +179,11 @@ export const DocumentEditor = ({ document, onSave, onBack }) => {
         </div>
       </div>
 
-      {selectedField && (
-        <DocumentFieldConfig
-          field={droppedFields[currentPageNum]?.find(
-            (f) => f.id === selectedField
-          )}
-          onUpdateField={updateFieldAttribute}
-          onDelete={deleteField}
-          onClose={() => setSelectedField(null)}
-        />
-      )}
+      <DocumentFieldConfig
+        field={selectedFieldData}
+        onUpdate={updateFieldAttribute}
+        onClose={() => setSelectedField(null)}
+      />
     </div>
   );
 };

@@ -1,49 +1,15 @@
 // src/components/document/DocumentPreview.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { ChevronLeft, ChevronRight, Edit, X } from "lucide-react";
 import { CanvasPageRenderer } from "./CanvasPageRenderer";
 import { A4_WIDTH, A4_HEIGHT } from "../../constants/layoutConstants";
-import { pdfBufferStore, base64ToArrayBuffer } from "../../utils/pdfProcessor";
+import { pdfBufferStore } from "../../utils/pdfProcessor";
 
 export const DocumentPreview = ({ document, onBack, onEdit }) => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [pdfBuffer, setPdfBuffer] = useState(null);
 
-  useEffect(() => {
-    let mounted = true;
-
-    const ensureBuffer = async () => {
-      if (!document) return;
-
-      // First try in-memory store
-      const inMemory = pdfBufferStore.get(document.id);
-      if (inMemory) {
-        if (mounted) setPdfBuffer(inMemory);
-        return;
-      }
-
-      // Fallback: if saved base64 exists, convert once and cache it
-      if (document.arrayBufferBase64) {
-        try {
-          const ab = base64ToArrayBuffer(document.arrayBufferBase64);
-          pdfBufferStore.set(document.id, ab);
-          if (mounted) setPdfBuffer(ab);
-          return;
-        } catch (err) {
-          console.error("Failed to convert stored base64 to buffer:", err);
-        }
-      }
-
-      // No buffer available
-      if (mounted) setPdfBuffer(null);
-    };
-
-    ensureBuffer();
-
-    return () => {
-      mounted = false;
-    };
-  }, [document]);
+  // Get PDF buffer from in-memory store
+  const pdfBuffer = pdfBufferStore.get(document.id);
 
   if (!document) {
     return (
@@ -109,7 +75,7 @@ export const DocumentPreview = ({ document, onBack, onEdit }) => {
               style={{ width: `${A4_WIDTH}px`, height: `${A4_HEIGHT}px` }}
             >
               <CanvasPageRenderer
-                pdfData={pdfBuffer || document.arrayBufferBase64}
+                arrayBuffer={pdfBuffer}
                 pageNumber={currentPage}
                 width={A4_WIDTH}
                 height={A4_HEIGHT}
@@ -122,4 +88,5 @@ export const DocumentPreview = ({ document, onBack, onEdit }) => {
     </div>
   );
 };
+
 export default DocumentPreview;
