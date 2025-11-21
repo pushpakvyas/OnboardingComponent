@@ -1,16 +1,12 @@
 // src/components/document/DocumentPreview.jsx
 import React, { useState } from "react";
 import { ChevronLeft, ChevronRight, Edit, X } from "lucide-react";
-import { CanvasPageRenderer } from "./CanvasPageRenderer";
+import CanvasPageRenderer from "./CanvasPageRenderer";
 import { A4_WIDTH, A4_HEIGHT } from "../../constants/layoutConstants";
-import { pdfBufferStore } from "../../utils/pdfProcessor";
+import { pdfBufferStore } from "../../utils/pdfBufferStore";
 
 export const DocumentPreview = ({ document, onBack, onEdit }) => {
   const [currentPage, setCurrentPage] = useState(1);
-
-  // Get PDF buffer from in-memory store
-  const pdfBuffer = pdfBufferStore.get(document.id);
-
   if (!document) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -18,6 +14,24 @@ export const DocumentPreview = ({ document, onBack, onEdit }) => {
       </div>
     );
   }
+
+  // Ensure buffer exists in store; recover from document.arrayBuffer if available
+  let pdfBuffer = pdfBufferStore.get(document.id);
+  if (
+    (!pdfBuffer || (pdfBuffer && pdfBuffer.byteLength === 0)) &&
+    document.arrayBuffer
+  ) {
+    // clone and re-store
+    const recovered =
+      document.arrayBuffer instanceof ArrayBuffer
+        ? document.arrayBuffer.slice(0)
+        : document.arrayBuffer;
+    pdfBufferStore.set(document.id, recovered);
+    pdfBuffer = recovered;
+  }
+
+  // Optional: debug log
+  // console.log("DocumentPreview buffer", document.id, pdfBuffer?.byteLength);
 
   return (
     <div className="flex h-screen bg-gray-100">

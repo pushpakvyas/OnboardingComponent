@@ -7,7 +7,7 @@ import { DocumentFieldConfig } from "./DocumentFieldConfig";
 import { DraggableField } from "../fields/Draggablefield";
 import { CanvasPageRenderer } from "./CanvasPageRenderer";
 import { A4_WIDTH, A4_HEIGHT } from "../../constants/layoutConstants";
-import { pdfBufferStore } from "../../utils/pdfProcessor";
+import { pdfBufferStore } from "../../utils/pdfBufferStore";
 
 export const DocumentEditor = ({ document, onSave, onBack }) => {
   const {
@@ -26,9 +26,12 @@ export const DocumentEditor = ({ document, onSave, onBack }) => {
     updateFieldPosition,
     addBlankPage,
   } = useDocumentEditor(document.pages, document.droppedFields);
+  console.log("document", document.id);
+  console.log("pdfBufferStore edit", pdfBufferStore);
 
   // Get PDF buffer from in-memory store
   const pdfBuffer = pdfBufferStore.get(document.id);
+  console.log("pdfBuffer edit", pdfBuffer);
 
   const handleDrop = (e) => {
     e.preventDefault();

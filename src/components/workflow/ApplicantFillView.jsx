@@ -3,7 +3,7 @@ import { Save, ChevronLeft, ChevronRight } from "lucide-react";
 import { FieldRenderer } from "../fields/FieldRenderer";
 import { CanvasPageRenderer } from "../document/CanvasPageRenderer";
 import { A4_WIDTH, A4_HEIGHT } from "../../constants/layoutConstants";
-import { pdfBufferStore } from "../../utils/pdfProcessor";
+import { pdfBufferStore } from "../../utils/pdfBufferStore";
 
 export const ApplicantFillView = ({
   document,

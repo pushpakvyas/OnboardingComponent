@@ -1,5 +1,7 @@
 import { PDFDocument, rgb } from "pdf-lib";
-import { A4_WIDTH, A4_HEIGHT } from "../constants/layoutConstants";
+import { A4_WIDTH } from "../constants/layoutConstants";
+import { loadPdfJs } from "./pdfProcessor";
+import { pdfBufferStore } from "./pdfBufferStore";
 
 const PDF_A4_WIDTH = 595.28;
 const PDF_A4_HEIGHT = 841.89;
@@ -170,36 +172,101 @@ export const generatePDF = async (doc, userFieldData = null, userId = null) => {
   }
 };
 
-export const downloadPDF = async (doc, userFieldData, userId) => {
+export const generatePDFWithData = async (
+  doc,
+  userFieldData = {},
+  userId = null
+) => {
   try {
-    console.log("Downloading PDF:", doc.documentName);
-
-    const fieldCount = Object.values(doc.droppedFields || {}).flat().length;
-
-    if (fieldCount === 0) {
-      alert("This document has no form fields to export.");
-      return;
+    if (!doc.pages || doc.pages.length === 0) {
+      throw new Error("No pages found");
     }
 
-    const blob = await generatePDF(doc, userFieldData, userId);
+    const pdfjsLib = await loadPdfJs();
+    const pdfDoc = await PDFDocument.create();
+
+    const buffer = pdfBufferStore.get(doc.id);
+
+    if (buffer && !doc.isBlankDocument) {
+      try {
+        const existingPdf = await PDFDocument.load(buffer);
+        const pages = await pdfDoc.copyPages(
+          existingPdf,
+          existingPdf.getPageIndices()
+        );
+        pages.forEach((page) => pdfDoc.addPage(page));
+      } catch (e) {
+        console.warn("Could not load existing PDF, creating new one");
+        doc.pages.forEach(() => pdfDoc.addPage([595.28, 841.89]));
+      }
+    } else {
+      doc.pages.forEach(() => pdfDoc.addPage([595.28, 841.89]));
+    }
+
+    const form = pdfDoc.getForm();
+    const pdfPages = pdfDoc.getPages();
+    let fieldCount = 0;
+
+    for (let pageIdx = 0; pageIdx < pdfPages.length; pageIdx++) {
+      const pageNum = pageIdx + 1;
+      const pdfPage = pdfPages[pageIdx];
+
+      if (doc.droppedFields?.[pageNum]) {
+        for (const field of doc.droppedFields[pageNum]) {
+          try {
+            const fieldName = `field_${field.id.replace(/[^a-zA-Z0-9]/g, "_")}`;
+            let fieldValue = field.value || "";
+
+            // Get value from user data
+            if (userId && userFieldData?.[doc.id]?.[userId]) {
+              fieldValue = userFieldData[doc.id][userId][field.id] || "";
+            }
+
+            const textField = form.createTextField(fieldName);
+            textField.setText(String(fieldValue));
+            const x = pixelToPoint(field.x);
+            const width = pixelToPoint(field.width || 150);
+            const height = pixelToPoint(field.height || 36);
+
+            const y = PDF_A4_HEIGHT - pixelToPoint(field.y) - height;
+
+            textField.addToPage(pdfPage, {
+              x,
+              y,
+              width,
+              height,
+            });
+
+            fieldCount++;
+          } catch (e) {
+            console.warn("Field creation error:", e);
+          }
+        }
+      }
+    }
+
+    const pdfBytes = await pdfDoc.save();
+    return new Blob([pdfBytes], { type: "application/pdf" });
+  } catch (error) {
+    console.error("PDF generation error:", error);
+    throw error;
+  }
+};
+
+export const downloadPDF = async (doc, userFieldData, userId) => {
+  try {
+    const blob = await generatePDFWithData(doc, userFieldData, userId);
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-
-    const filename = userId
+    link.download = userId
       ? `${doc.documentName}_${userId}.pdf`
-      : `${doc.documentName.replace(/\s+/g, "_")}.pdf`;
-
-    link.download = filename;
+      : `${doc.documentName}.pdf`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-
-    setTimeout(() => URL.revokeObjectURL(url), 100);
-
-    console.log("✅ PDF downloaded with", fieldCount, "editable fields");
+    URL.revokeObjectURL(url);
   } catch (error) {
-    console.error("Download error:", error);
-    alert(`Failed to download PDF: ${error.message}`);
+    alert("Download failed: " + error.message);
   }
 };

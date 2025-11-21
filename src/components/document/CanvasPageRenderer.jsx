@@ -1,3 +1,4 @@
+// src/components/document/CanvasPageRenderer.jsx
 import React, { useEffect, useRef } from "react";
 import { renderPageToCanvas } from "../../utils/pdfProcessor";
 import { A4_WIDTH, A4_HEIGHT } from "../../constants/layoutConstants";
@@ -20,11 +21,22 @@ export const CanvasPageRenderer = ({
       if (!canvasRef.current || !pageNumber) return;
 
       try {
-        if (isBlankDocument || !arrayBuffer) {
-          // Render blank page
-          const context = canvasRef.current.getContext("2d");
-          context.fillStyle = "#ffffff";
-          context.fillRect(0, 0, width, height);
+        if (isBlankDocument) {
+          const ctx = canvasRef.current.getContext("2d");
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, width, height);
+          return;
+        }
+
+        if (!arrayBuffer) {
+          console.warn("CanvasPageRenderer: no arrayBuffer provided");
+          const ctx = canvasRef.current.getContext("2d");
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(0, 0, width, height);
+          ctx.fillStyle = "#333";
+          ctx.font = "12px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("No PDF data", width / 2, height / 2);
           return;
         }
 
@@ -33,8 +45,6 @@ export const CanvasPageRenderer = ({
         }
       } catch (error) {
         console.error("Error rendering page:", error);
-
-        // Render error state
         if (canvasRef.current && currentRenderId === renderIdRef.current) {
           const context = canvasRef.current.getContext("2d");
           context.fillStyle = "#ffffff";
@@ -48,6 +58,7 @@ export const CanvasPageRenderer = ({
     };
 
     renderPage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [arrayBuffer, pageNumber, width, height, isBlankDocument]);
 
   return (
@@ -60,3 +71,5 @@ export const CanvasPageRenderer = ({
     />
   );
 };
+
+export default CanvasPageRenderer;

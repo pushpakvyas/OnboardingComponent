@@ -1,180 +1,162 @@
 // src/utils/pdfProcessor.js
-import { A4_WIDTH, A4_HEIGHT } from "../constants/layoutConstants";
+import { pdfBufferStore } from "./pdfBufferStore";
 
-let pdfjsLib = null;
-let pdfjsLoadingPromise = null;
+/**
+ * loadPdfJs()
+ * Loads PDF.js once and returns the loaded library.
+ */
+export const loadPdfJs = () => {
+  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
 
-// In-memory store for ArrayBuffers keyed by document id
-export const pdfBufferStore = new Map();
-
-const loadPdfJs = () => {
-  if (pdfjsLib) {
-    return Promise.resolve(pdfjsLib);
-  }
-
-  if (pdfjsLoadingPromise) {
-    return pdfjsLoadingPromise;
-  }
-
-  pdfjsLoadingPromise = new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
     if (window["pdfjs-dist/build/pdf"]) {
-      pdfjsLib = window["pdfjs-dist/build/pdf"];
-      pdfjsLib.GlobalWorkerOptions.workerSrc =
+      window.pdfjsLib = window["pdfjs-dist/build/pdf"];
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
         "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-      resolve(pdfjsLib);
+      resolve(window.pdfjsLib);
       return;
     }
 
     const script = document.createElement("script");
     script.src =
       "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-    script.async = true;
     script.onload = () => {
-      pdfjsLib = window["pdfjs-dist/build/pdf"];
-      if (pdfjsLib) {
-        pdfjsLib.GlobalWorkerOptions.workerSrc =
-          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-        resolve(pdfjsLib);
-      } else {
-        reject(new Error("PDF.js failed to load"));
-      }
+      window.pdfjsLib = window["pdfjs-dist/build/pdf"];
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      resolve(window.pdfjsLib);
     };
-    script.onerror = () => {
-      reject(new Error("Failed to load PDF.js script"));
-    };
+    script.onerror = () => reject(new Error("Failed to load PDF.js"));
     document.head.appendChild(script);
   });
-
-  return pdfjsLoadingPromise;
 };
 
-// Process PDF and return ArrayBuffer + metadata
-export const processPDF = async (file) => {
-  try {
-    const pdfjsLib = await loadPdfJs();
-    const arrayBuffer = await file.arrayBuffer();
+/**
+ * processPDF(file, documentId)
+ * - Reads the file once
+ * - Creates a storedBuffer (ArrayBuffer) that is never passed to workers
+ * - Creates a workerBuffer clone to pass to pdf.js (it may be detached)
+ * - Stores storedBuffer in pdfBufferStore under documentId
+ * - Returns metadata and storedBuffer
+ */
+export const processPDF = async (file, documentId) => {
+  if (!file) throw new Error("No file provided to processPDF");
+  if (!documentId) throw new Error("documentId is required for processPDF");
 
-    if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-      throw new Error("Empty PDF file");
-    }
-
-    // Store the original ArrayBuffer
-    const pdfArrayBuffer = arrayBuffer.slice(0);
-
-    // Load PDF to get page count and dimensions
-    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-    const pdf = await loadingTask.promise;
-    const pageCount = pdf.numPages;
-
-    const pages = [];
-
-    // Extract page dimensions
-    for (let i = 1; i <= pageCount; i++) {
-      const page = await pdf.getPage(i);
-      const viewport = page.getViewport({ scale: 1.0 });
-
-      pages.push({
-        number: i,
-        width: A4_WIDTH,
-        height: A4_HEIGHT,
-        originalWidth: viewport.width,
-        originalHeight: viewport.height,
-      });
-    }
-
-    return {
-      arrayBuffer: pdfArrayBuffer,
-      pages,
-      pageCount,
-      isBlankDocument: false,
-    };
-  } catch (error) {
-    console.error("Error processing PDF:", error);
-    throw error;
+  const original = await file.arrayBuffer();
+  if (!original || original.byteLength === 0) {
+    throw new Error("Empty PDF file");
   }
+
+  // safe store copy (never passed to worker)
+  const storedBuffer = original.slice(0);
+
+  // worker copy (allowed to be detached by pdf.js)
+  const workerBuffer = original.slice(0);
+
+  // persist safe buffer
+  pdfBufferStore.set(documentId, storedBuffer);
+
+  const pdfjsLib = await loadPdfJs();
+
+  // pass worker copy to pdf.js as a Uint8Array (worker may take ownership)
+  const loadingTask = pdfjsLib.getDocument({
+    data: new Uint8Array(workerBuffer),
+  });
+  const pdf = await loadingTask.promise;
+
+  const pageCount = pdf.numPages;
+  const pages = [];
+
+  for (let i = 1; i <= pageCount; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale: 1.0 });
+    pages.push({
+      number: i,
+      width: 816,
+      height: 1056,
+      originalWidth: viewport.width,
+      originalHeight: viewport.height,
+    });
+  }
+
+  return {
+    arrayBuffer: storedBuffer, // safe copy for storage and re-use
+    pages,
+    pageCount,
+    isBlankDocument: false,
+  };
 };
 
-// Render specific page from ArrayBuffer to canvas
+/**
+ * renderPageToCanvas(arrayBufferOrView, pageNumber, targetCanvas)
+ * - Accepts: stored ArrayBuffer (preferred) or a TypedArray view
+ * - Creates a fresh clone before passing to pdf.js to avoid DataCloneError
+ */
 export const renderPageToCanvas = async (
-  arrayBuffer,
+  arrayBufferOrView,
   pageNumber,
   targetCanvas
 ) => {
   try {
-    if (!arrayBuffer) {
-      // Blank page
-      const ctx = targetCanvas.getContext("2d");
-      targetCanvas.width = A4_WIDTH;
-      targetCanvas.height = A4_HEIGHT;
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, A4_WIDTH, A4_HEIGHT);
-      return true;
-    }
-
-    if (!(arrayBuffer instanceof ArrayBuffer)) {
-      throw new Error("Invalid PDF data. Expected ArrayBuffer.");
-    }
-
-    if (!targetCanvas) {
-      throw new Error("No canvas provided");
-    }
-
+    if (!arrayBufferOrView)
+      throw new Error("No arrayBuffer provided to renderPageToCanvas");
     const pdfjsLib = await loadPdfJs();
 
-    // Load PDF
-    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    let workerUint8;
+
+    // ArrayBuffer
+    if (arrayBufferOrView instanceof ArrayBuffer) {
+      if (arrayBufferOrView.byteLength === 0)
+        throw new Error("Provided ArrayBuffer is detached/empty");
+      workerUint8 = new Uint8Array(arrayBufferOrView.slice(0)); // fresh clone
+    } else if (ArrayBuffer.isView(arrayBufferOrView)) {
+      // TypedArray or DataView: copy the real bytes
+      const view = arrayBufferOrView;
+      const buf = view.buffer.slice(
+        view.byteOffset,
+        view.byteOffset + view.byteLength
+      );
+      if (buf.byteLength === 0)
+        throw new Error("Provided ArrayBuffer view is detached/empty");
+      workerUint8 = new Uint8Array(buf);
+    } else {
+      throw new Error("Unsupported buffer type for renderPageToCanvas");
+    }
+
+    const loadingTask = pdfjsLib.getDocument({ data: workerUint8 });
     const pdf = await loadingTask.promise;
 
-    // Get page
     const page = await pdf.getPage(pageNumber);
+    const viewport = page.getViewport({ scale: 1.5 });
 
-    // Calculate scale to fit A4
-    const originalViewport = page.getViewport({ scale: 1.0 });
-    const scaleX = A4_WIDTH / originalViewport.width;
-    const scaleY = A4_HEIGHT / originalViewport.height;
-    const scale = Math.min(scaleX, scaleY);
+    // render to temporary canvas then draw scaled to target
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = viewport.width;
+    tempCanvas.height = viewport.height;
 
-    const viewport = page.getViewport({ scale });
+    const tempCtx = tempCanvas.getContext("2d");
+    tempCtx.fillStyle = "#ffffff";
+    tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
 
-    // Create offscreen canvas
-    const offscreenCanvas = document.createElement("canvas");
-    offscreenCanvas.width = A4_WIDTH;
-    offscreenCanvas.height = A4_HEIGHT;
+    await page.render({
+      canvasContext: tempCtx,
+      viewport,
+    }).promise;
 
-    const context = offscreenCanvas.getContext("2d", { alpha: false });
-
-    // White background
-    context.fillStyle = "#ffffff";
-    context.fillRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
-
-    // Center the page content
-    const xOffset = (A4_WIDTH - viewport.width) / 2;
-    const yOffset = (A4_HEIGHT - viewport.height) / 2;
-
-    context.save();
-    context.translate(xOffset, yOffset);
-
-    // Render to offscreen canvas
-    const renderContext = {
-      canvasContext: context,
-      viewport: viewport,
-      annotationMode: 0,
-    };
-
-    const renderTask = page.render(renderContext);
-    await renderTask.promise;
-
-    context.restore();
-
-    // Copy to target canvas
-    const targetContext = targetCanvas.getContext("2d");
-    targetCanvas.width = A4_WIDTH;
-    targetCanvas.height = A4_HEIGHT;
-    targetContext.drawImage(offscreenCanvas, 0, 0);
+    const targetCtx = targetCanvas.getContext("2d");
+    targetCtx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
+    targetCtx.drawImage(
+      tempCanvas,
+      0,
+      0,
+      targetCanvas.width,
+      targetCanvas.height
+    );
 
     return true;
-  } catch (error) {
-    console.error("Error rendering page:", error);
-    throw error;
+  } catch (err) {
+    console.error("PDF render failed:", err);
+    throw err;
   }
 };
