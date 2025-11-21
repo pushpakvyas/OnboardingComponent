@@ -3,10 +3,10 @@ import { renderPageToCanvas } from "../../utils/pdfProcessor";
 import { A4_WIDTH, A4_HEIGHT } from "../../constants/layoutConstants";
 
 export const CanvasPageRenderer = ({
-  pdfData,
+  arrayBuffer,
   pageNumber,
-  width,
-  height,
+  width = A4_WIDTH,
+  height = A4_HEIGHT,
   className = "",
   isBlankDocument = false,
 }) => {
@@ -20,7 +20,8 @@ export const CanvasPageRenderer = ({
       if (!canvasRef.current || !pageNumber) return;
 
       try {
-        if (isBlankDocument || !pdfData) {
+        if (isBlankDocument || !arrayBuffer) {
+          // Render blank page
           const context = canvasRef.current.getContext("2d");
           context.fillStyle = "#ffffff";
           context.fillRect(0, 0, width, height);
@@ -28,11 +29,12 @@ export const CanvasPageRenderer = ({
         }
 
         if (currentRenderId === renderIdRef.current) {
-          await renderPageToCanvas(pdfData, pageNumber, canvasRef.current);
+          await renderPageToCanvas(arrayBuffer, pageNumber, canvasRef.current);
         }
       } catch (error) {
         console.error("Error rendering page:", error);
 
+        // Render error state
         if (canvasRef.current && currentRenderId === renderIdRef.current) {
           const context = canvasRef.current.getContext("2d");
           context.fillStyle = "#ffffff";
@@ -40,13 +42,13 @@ export const CanvasPageRenderer = ({
           context.fillStyle = "#ef4444";
           context.font = "14px sans-serif";
           context.textAlign = "center";
-          context.fillText("Error loading PDF page", width / 2, height / 2);
+          context.fillText("Error loading PDF", width / 2, height / 2);
         }
       }
     };
 
     renderPage();
-  }, [pdfData, pageNumber, width, height, isBlankDocument]);
+  }, [arrayBuffer, pageNumber, width, height, isBlankDocument]);
 
   return (
     <canvas

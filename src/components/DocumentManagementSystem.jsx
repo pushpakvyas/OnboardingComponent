@@ -1,4 +1,3 @@
-// src/pages/DocumentManagementSystem.jsx
 import React, { useState } from "react";
 import { useDocuments } from "../hooks/useDocuments";
 import { useUserFieldData } from "../hooks/useUserFieldData";
@@ -19,7 +18,6 @@ const DocumentManagementSystem = () => {
   const [currentUserRole, setCurrentUserRole] = useState("");
   const [selectedApplicant, setSelectedApplicant] = useState("");
   const [tempDocumentData, setTempDocumentData] = useState(null);
-  const [isDesignMode, setIsDesignMode] = useState(false);
 
   const {
     documents,
@@ -52,7 +50,6 @@ const DocumentManagementSystem = () => {
     if (window.confirm("Are you sure you want to delete this document?")) {
       deleteDocument(docId);
       deleteDocumentData(docId);
-      // also remove buffer from in-memory store
       pdfBufferStore.delete(docId);
     }
   };
@@ -145,9 +142,7 @@ const DocumentManagementSystem = () => {
       }
     }
 
-    const applicants = Object.keys(userFieldData[doc.id] || {}).filter(
-      (userId) => userFieldData[doc.id][userId].status === "submitted"
-    );
+    const applicants = getSubmittedApplicants(doc.id);
 
     if (applicants.length === 0) {
       alert("No applicants have submitted data for this document yet.");
@@ -221,13 +216,12 @@ const DocumentManagementSystem = () => {
 
   // Drawer Actions
   const handleFileProcess = async (file, pdfData = null, isDesign = false) => {
-    console.log("handleFileProcess called", { file, pdfData, isDesign });
+    console.log("handleFileProcess called", { file, isDesign });
 
     // For design mode with blank pages
     if (pdfData && pdfData.isBlankDocument) {
       console.log("Setting blank document data");
       setTempDocumentData(pdfData);
-      setIsDesignMode(true);
       return;
     }
 
@@ -249,7 +243,6 @@ const DocumentManagementSystem = () => {
       console.log("PDF processed successfully:", processedData);
 
       setTempDocumentData(processedData);
-      setIsDesignMode(false);
     } catch (error) {
       console.error("Error processing file:", error);
       alert("Failed to process PDF file. Please try again.");
@@ -273,9 +266,7 @@ const DocumentManagementSystem = () => {
       createdBy: `Current User_${Date.now()}`,
       createdOn: new Date().toISOString(),
       workflows: workflows || [],
-      // do NOT persist raw ArrayBuffer here
-      // keep a base64 fallback only if you plan to persist to backend/localstorage
-      arrayBufferBase64: tempDocumentData?.arrayBufferBase64 || null,
+      arrayBuffer: null,
       pages: tempDocumentData?.pages || [],
       droppedFields: {},
       status: "active",
@@ -289,19 +280,10 @@ const DocumentManagementSystem = () => {
 
     console.log("New document object:", newDoc);
 
-    if (isDesignMode) {
-      setCurrentDocument(newDoc);
-      setDrawerOpen(false);
-      setTempDocumentData(null);
-      setView("editor");
-      setIsDesignMode(false);
-    } else {
-      addDocument(newDoc);
-      setDrawerOpen(false);
-      setTempDocumentData(null);
-      setIsDesignMode(false);
-      setView("table");
-    }
+    addDocument(newDoc);
+    setDrawerOpen(false);
+    setTempDocumentData(null);
+    setView("table");
   };
 
   return (
@@ -339,7 +321,7 @@ const DocumentManagementSystem = () => {
           document={currentDocument}
           onSave={handleSaveFromEditor}
           onBack={() => {
-            setView(currentDocument?.id ? "table" : "table");
+            setView("table");
             setCurrentDocument(null);
           }}
         />
@@ -393,7 +375,6 @@ const DocumentManagementSystem = () => {
         onClose={() => {
           setDrawerOpen(false);
           setTempDocumentData(null);
-          setIsDesignMode(false);
         }}
         onSave={handleSaveFromDrawer}
         onFileProcess={handleFileProcess}

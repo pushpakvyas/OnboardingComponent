@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, Check, X } from "lucide-react";
 import { FieldRenderer } from "../fields/FieldRenderer";
 import { CanvasPageRenderer } from "../document/CanvasPageRenderer";
 import { A4_WIDTH, A4_HEIGHT } from "../../constants/layoutConstants";
+import { pdfBufferStore } from "../../utils/pdfProcessor";
 
 export const ApproverReviewView = ({
   document,
@@ -18,21 +19,17 @@ export const ApproverReviewView = ({
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
 
-  const applicantFields = Object.entries(document.droppedFields || {})
-    .flatMap(([pageNum, fields]) =>
-      fields
-        .filter((f) => f.toBeFilledBy === "applicant")
-        .map((f) => ({ ...f, page: parseInt(pageNum) }))
-    )
-    .filter((f) => f.page === currentPage);
+  // Get PDF buffer from in-memory store
+  const pdfBuffer = pdfBufferStore.get(document.id);
 
-  const approverFields = Object.entries(document.droppedFields || {})
-    .flatMap(([pageNum, fields]) =>
-      fields
-        .filter((f) => f.toBeFilledBy === "approver")
-        .map((f) => ({ ...f, page: parseInt(pageNum) }))
-    )
-    .filter((f) => f.page === currentPage);
+  // Filter fields for current page
+  const applicantFields = (document.droppedFields?.[currentPage] || []).filter(
+    (f) => f.role === "applicant"
+  );
+
+  const approverFields = (document.droppedFields?.[currentPage] || []).filter(
+    (f) => f.role === "approver"
+  );
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -50,7 +47,7 @@ export const ApproverReviewView = ({
                 <h2 className="text-xl font-semibold">
                   {document.documentName}
                 </h2>
-                <p className="text-sm text-gray-500">Approver Review</p>
+                <p className="text-sm text-gray-500">Approver - Review</p>
               </div>
             </div>
             <div className="flex gap-3">
@@ -88,7 +85,7 @@ export const ApproverReviewView = ({
         </div>
 
         <div className="flex-1 overflow-auto p-8 flex justify-center">
-          <div className="max-w-4xl">
+          <div className="max-w-4xl w-full">
             <div className="flex items-center justify-between mb-4">
               <button
                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
@@ -98,15 +95,15 @@ export const ApproverReviewView = ({
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <span className="text-sm font-medium">
-                Page {currentPage} of {document.pages.length}
+                Page {currentPage} of {document.pages?.length || 1}
               </span>
               <button
                 onClick={() =>
                   setCurrentPage(
-                    Math.min(document.pages.length, currentPage + 1)
+                    Math.min(document.pages?.length || 1, currentPage + 1)
                   )
                 }
-                disabled={currentPage === document.pages.length}
+                disabled={currentPage === (document.pages?.length || 1)}
                 className="p-2 rounded-lg hover:bg-white disabled:opacity-50"
               >
                 <ChevronRight className="w-5 h-5" />
@@ -117,6 +114,7 @@ export const ApproverReviewView = ({
               className="relative bg-white shadow-lg"
               style={{ width: `${A4_WIDTH}px`, height: `${A4_HEIGHT}px` }}
             >
+              {/* PDF Background */}
               <div
                 style={{
                   position: "absolute",
@@ -126,7 +124,7 @@ export const ApproverReviewView = ({
                 }}
               >
                 <CanvasPageRenderer
-                  pdfData={document.arrayBufferBase64}
+                  arrayBuffer={pdfBuffer}
                   pageNumber={currentPage}
                   width={A4_WIDTH}
                   height={A4_HEIGHT}
@@ -134,26 +132,31 @@ export const ApproverReviewView = ({
                 />
               </div>
 
+              {/* Fields Layer */}
               <div style={{ position: "absolute", inset: 0, zIndex: 10 }}>
+                {/* Applicant Fields - Read Only */}
                 {applicantFields.map((field) => (
                   <FieldRenderer
                     key={field.id}
                     field={field}
-                    value={userFieldData[field.id] || field.value || ""}
+                    value={userFieldData?.[field.id] || ""}
                     onChange={() => {}}
-                    disabled={true}
+                    readOnly={true}
+                    role="applicant"
                   />
                 ))}
 
+                {/* Approver Fields - Editable */}
                 {approverFields.map((field) => (
                   <FieldRenderer
                     key={field.id}
                     field={field}
-                    value={userFieldData[field.id] || field.value || ""}
-                    onChange={(value) =>
-                      onUpdateField(field.id, value, selectedApplicant)
+                    value={userFieldData?.[field.id] || ""}
+                    onChange={(val) =>
+                      onUpdateField(field.id, val, selectedApplicant)
                     }
-                    disabled={false}
+                    readOnly={false}
+                    role="approver"
                   />
                 ))}
               </div>

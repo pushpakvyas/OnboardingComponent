@@ -48,32 +48,7 @@ const loadPdfJs = () => {
   return pdfjsLoadingPromise;
 };
 
-// --- Safe conversions ---
-// chunked approach avoids corrupting binary when using String.fromCharCode.apply
-
-export const arrayBufferToBase64 = (buffer) => {
-  const bytes = new Uint8Array(buffer);
-  const chunkSize = 0x8000; // 32KB
-  let binary = "";
-
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(i, i + chunkSize);
-    binary += String.fromCharCode.apply(null, chunk);
-  }
-  return btoa(binary);
-};
-
-export const base64ToArrayBuffer = (base64) => {
-  const binary = atob(base64);
-  const len = binary.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes.buffer;
-};
-
-// Process PDF and return ArrayBuffer + metadata (no automatic persistence here)
+// Process PDF and return ArrayBuffer + metadata
 export const processPDF = async (file) => {
   try {
     const pdfjsLib = await loadPdfJs();
@@ -83,17 +58,14 @@ export const processPDF = async (file) => {
       throw new Error("Empty PDF file");
     }
 
-    // Keep original ArrayBuffer
+    // Store the original ArrayBuffer
     const pdfArrayBuffer = arrayBuffer.slice(0);
 
-    // Optionally create base64 fallback for persistence if you ever need it
-    const base64String = arrayBufferToBase64(arrayBuffer);
-
-    // Load PDF to get page info
+    // Load PDF to get page count and dimensions
     const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
     const pdf = await loadingTask.promise;
-
     const pageCount = pdf.numPages;
+
     const pages = [];
 
     // Extract page dimensions
@@ -112,9 +84,9 @@ export const processPDF = async (file) => {
 
     return {
       arrayBuffer: pdfArrayBuffer,
-      arrayBufferBase64: base64String,
       pages,
       pageCount,
+      isBlankDocument: false,
     };
   } catch (error) {
     console.error("Error processing PDF:", error);
@@ -122,11 +94,25 @@ export const processPDF = async (file) => {
   }
 };
 
-// Render specific page from ArrayBuffer OR base64 to canvas
-export const renderPageToCanvas = async (pdfData, pageNumber, targetCanvas) => {
+// Render specific page from ArrayBuffer to canvas
+export const renderPageToCanvas = async (
+  arrayBuffer,
+  pageNumber,
+  targetCanvas
+) => {
   try {
-    if (!pdfData) {
-      throw new Error("No PDF data provided");
+    if (!arrayBuffer) {
+      // Blank page
+      const ctx = targetCanvas.getContext("2d");
+      targetCanvas.width = A4_WIDTH;
+      targetCanvas.height = A4_HEIGHT;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, A4_WIDTH, A4_HEIGHT);
+      return true;
+    }
+
+    if (!(arrayBuffer instanceof ArrayBuffer)) {
+      throw new Error("Invalid PDF data. Expected ArrayBuffer.");
     }
 
     if (!targetCanvas) {
@@ -135,20 +121,6 @@ export const renderPageToCanvas = async (pdfData, pageNumber, targetCanvas) => {
 
     const pdfjsLib = await loadPdfJs();
 
-    // Accept either ArrayBuffer or base64 string
-    let arrayBuffer;
-    if (typeof pdfData === "string") {
-      // base64 string
-      arrayBuffer = base64ToArrayBuffer(pdfData);
-    } else if (pdfData instanceof ArrayBuffer) {
-      arrayBuffer = pdfData;
-    } else if (pdfData && pdfData.buffer instanceof ArrayBuffer) {
-      // in case a Uint8Array is passed
-      arrayBuffer = pdfData.buffer;
-    } else {
-      throw new Error("Invalid PDF data type. Expect ArrayBuffer or base64 string.");
-    }
-
     // Load PDF
     const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
     const pdf = await loadingTask.promise;
@@ -156,7 +128,7 @@ export const renderPageToCanvas = async (pdfData, pageNumber, targetCanvas) => {
     // Get page
     const page = await pdf.getPage(pageNumber);
 
-    // Calculate scale
+    // Calculate scale to fit A4
     const originalViewport = page.getViewport({ scale: 1.0 });
     const scaleX = A4_WIDTH / originalViewport.width;
     const scaleY = A4_HEIGHT / originalViewport.height;
@@ -175,7 +147,7 @@ export const renderPageToCanvas = async (pdfData, pageNumber, targetCanvas) => {
     context.fillStyle = "#ffffff";
     context.fillRect(0, 0, offscreenCanvas.width, offscreenCanvas.height);
 
-    // Center the page
+    // Center the page content
     const xOffset = (A4_WIDTH - viewport.width) / 2;
     const yOffset = (A4_HEIGHT - viewport.height) / 2;
 
@@ -199,10 +171,6 @@ export const renderPageToCanvas = async (pdfData, pageNumber, targetCanvas) => {
     targetCanvas.width = A4_WIDTH;
     targetCanvas.height = A4_HEIGHT;
     targetContext.drawImage(offscreenCanvas, 0, 0);
-
-    // Cleanup
-    offscreenCanvas.width = 0;
-    offscreenCanvas.height = 0;
 
     return true;
   } catch (error) {

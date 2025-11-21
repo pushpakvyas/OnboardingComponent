@@ -1,25 +1,25 @@
 import React from "react";
-import { useDocumentEditor } from "../../hooks/useDocumentEditor";
 
 export const FieldRenderer = ({
   field,
   value,
   onChange,
   readOnly = false,
-  mode = "fill",
+  role = "applicant",
 }) => {
-  const isEditable = !readOnly && mode === "fill";
-  console.log(typeof field.fontSize);
+  // Determine if field is editable based on role
+  const isEditable = !readOnly && field.role === role;
 
-  const baseInputClass = `border rounded px-2 py-1 text-sm ${
-    isEditable ? "bg-white" : "bg-gray-100 cursor-not-allowed"
+  const baseInputClass = `border rounded px-2 py-1 text-sm transition-colors ${
+    isEditable
+      ? "bg-white border-blue-300 focus:ring-2 focus:ring-blue-500"
+      : "bg-gray-100 border-gray-200 cursor-not-allowed"
   }`;
-  const { calculateMaxChars } = useDocumentEditor();
 
   const renderLabel = () => {
     if (field.showLabel === false) return null;
     return (
-      <div className="text-xs font-semibold mb-1">
+      <div className="text-xs font-semibold mb-1 text-gray-700">
         {field.label}
         {field.required && <span className="text-red-500 ml-0.5">*</span>}
       </div>
@@ -29,20 +29,30 @@ export const FieldRenderer = ({
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      onChange?.(imageUrl); // store image URL in form data
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        onChange?.(event.target.result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const renderField = () => {
+    const styleProps = {
+      width: `${field.width || 200}px`,
+      fontSize: `${field.fontSize || 14}px`,
+      fontFamily: field.fontFamily || "Arial",
+      color: field.fontColor || "#000000",
+    };
+
     switch (field.type) {
       case "checkbox":
         return (
           <input
             type="checkbox"
-            className="w-4 h-4"
+            className="w-4 h-4 cursor-pointer"
             checked={value === true || value === "true"}
-            onChange={(e) => onChange?.(e.target.checked)}
+            onChange={(e) => isEditable && onChange?.(e.target.checked)}
             disabled={!isEditable}
           />
         );
@@ -55,20 +65,11 @@ export const FieldRenderer = ({
           <input
             type="text"
             className={baseInputClass}
-            style={{
-              width: field.width || 200,
-              fontSize: `${field.fontSize}px` || "14px",
-              fontFamily: field.fontFamily || "Arial",
-              color: field.fontColor || "#000000",
-            }}
+            style={styleProps}
             value={value || ""}
-            onChange={(e) => onChange?.(e.target.value)}
-            readOnly={!isEditable}
-            placeholder={isEditable ? field.label : ""}
-            maxLength={calculateMaxChars(
-              field.width || 200,
-              field.fontSize || 14
-            )}
+            onChange={(e) => isEditable && onChange?.(e.target.value)}
+            disabled={!isEditable}
+            placeholder={isEditable ? field.label || "Enter text" : ""}
           />
         );
 
@@ -77,15 +78,10 @@ export const FieldRenderer = ({
           <input
             type="date"
             className={baseInputClass}
-            style={{
-              width: field.width || 200,
-              fontSize: `${field.fontSize}` || "14px",
-              fontFamily: field.fontFamily || "Arial",
-              color: field.fontColor || "#000000",
-            }}
+            style={styleProps}
             value={value || ""}
-            onChange={(e) => onChange?.(e.target.value)}
-            readOnly={!isEditable}
+            onChange={(e) => isEditable && onChange?.(e.target.value)}
+            disabled={!isEditable}
           />
         );
 
@@ -93,16 +89,12 @@ export const FieldRenderer = ({
         return (
           <select
             className={baseInputClass}
-            style={{
-              width: field.width || 200,
-              fontSize: `${field.fontSize}` || "14px",
-              fontFamily: field.fontFamily || "Arial",
-              color: field.fontColor || "#000000",
-            }}
+            style={styleProps}
             value={value || ""}
-            onChange={(e) => onChange?.(e.target.value)}
+            onChange={(e) => isEditable && onChange?.(e.target.value)}
             disabled={!isEditable}
           >
+            <option value="">Select an option</option>
             {(field.options || []).map((opt, i) => (
               <option key={i} value={opt}>
                 {opt}
@@ -116,15 +108,10 @@ export const FieldRenderer = ({
           <input
             type="text"
             className={baseInputClass}
-            style={{
-              width: field.width || 200,
-              fontSize: `${field.fontSize}` || "14px",
-              fontFamily: field.fontFamily || "cursive",
-              color: field.fontColor || "#000000",
-            }}
+            style={{ ...styleProps, fontFamily: field.fontFamily || "cursive" }}
             value={value || ""}
-            onChange={(e) => onChange?.(e.target.value)}
-            readOnly={!isEditable}
+            onChange={(e) => isEditable && onChange?.(e.target.value)}
+            disabled={!isEditable}
             placeholder={isEditable ? "Sign here" : ""}
           />
         );
@@ -134,8 +121,9 @@ export const FieldRenderer = ({
           <div
             className="border rounded flex flex-col items-center justify-center gap-2 p-2 text-xs"
             style={{
-              width: field.width || 150,
-              height: field.height || 100,
+              width: `${field.width || 150}px`,
+              height: `${field.height || 100}px`,
+              backgroundColor: isEditable ? "#fafafa" : "#f0f0f0",
             }}
           >
             {value ? (
@@ -147,7 +135,7 @@ export const FieldRenderer = ({
                 />
                 {isEditable && (
                   <label className="text-[11px] text-blue-600 cursor-pointer hover:underline">
-                    Change Image
+                    Change
                     <input
                       type="file"
                       accept="image/*"
@@ -159,7 +147,7 @@ export const FieldRenderer = ({
               </>
             ) : isEditable ? (
               <label className="flex flex-col items-center justify-center cursor-pointer text-blue-600 hover:underline">
-                Upload Image
+                Upload
                 <input
                   type="file"
                   accept="image/*"
@@ -168,7 +156,7 @@ export const FieldRenderer = ({
                 />
               </label>
             ) : (
-              <span className="text-gray-400 text-xs">No image</span>
+              <span className="text-gray-400">No image</span>
             )}
           </div>
         );
@@ -181,12 +169,12 @@ export const FieldRenderer = ({
   return (
     <div
       className="absolute bg-transparent rounded p-2"
-      style={{ left: field.x, top: field.y }}
+      style={{ left: field.x, top: field.y, zIndex: 10 }}
     >
       {field.labelPosition === "top" && renderLabel()}
       <div className="flex items-center gap-2">
         {field.labelPosition === "left" && (
-          <div className="text-xs font-semibold whitespace-nowrap">
+          <div className="text-xs font-semibold whitespace-nowrap text-gray-700">
             {field.label}
             {field.required && <span className="text-red-500 ml-0.5">*</span>}:
           </div>
