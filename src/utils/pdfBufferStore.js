@@ -1,6 +1,6 @@
 // src/utils/pdfBufferStore.js
 // function-only singleton Map for storing ArrayBuffers across the app
-
+export const pdfBufferStore = new Map();
 let _store = null;
 
 function getStore() {
@@ -8,23 +8,23 @@ function getStore() {
   return _store;
 }
 
-export const pdfBufferStore = {
-  set(id, buffer) {
-    if (!id) return;
-    const s = getStore();
-    s.set(id, buffer);
-  },
-  get(id) {
-    const s = getStore();
-    return s.get(id);
-  },
-  has(id) {
-    return getStore().has(id);
-  },
-  delete(id) {
-    getStore().delete(id);
-  },
-  keys() {
-    return Array.from(getStore().keys());
-  },
-};
+// export const pdfBufferStore = {
+//   set(id, buffer) {
+//     if (!id) return;
+//     const s = getStore();
+//     s.set(id, buffer);
+//   },
+//   get(id) {
+//     const s = getStore();
+//     return s.get(id);
+//   },
+//   has(id) {
+//     return getStore().has(id);
+//   },
+//   delete(id) {
+//     getStore().delete(id);
+//   },
+//   keys() {
+//     return Array.from(getStore().keys());
+//   },
+// };

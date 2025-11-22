@@ -17,6 +17,8 @@ export const DocumentPreview = ({ document, onBack, onEdit }) => {
 
   // Ensure buffer exists in store; recover from document.arrayBuffer if available
   let pdfBuffer = pdfBufferStore.get(document.id);
+  console.log(pdfBuffer);
+
   if (
     (!pdfBuffer || (pdfBuffer && pdfBuffer.byteLength === 0)) &&
     document.arrayBuffer
