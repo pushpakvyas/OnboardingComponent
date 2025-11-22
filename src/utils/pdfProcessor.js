@@ -1,44 +1,17 @@
 // src/utils/pdfProcessor.js
+import * as pdfjsLib from "pdfjs-dist";
 import { pdfBufferStore } from "./pdfBufferStore";
 
-/**
- * loadPdfJs()
- * Loads PDF.js once and returns the loaded library.
- */
+// Configure worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.mjs",
+  import.meta.url
+).toString();
+
 export const loadPdfJs = () => {
-  if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
-
-  return new Promise((resolve, reject) => {
-    if (window["pdfjs-dist/build/pdf"]) {
-      window.pdfjsLib = window["pdfjs-dist/build/pdf"];
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-      resolve(window.pdfjsLib);
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src =
-      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-    script.onload = () => {
-      window.pdfjsLib = window["pdfjs-dist/build/pdf"];
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-        "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-      resolve(window.pdfjsLib);
-    };
-    script.onerror = () => reject(new Error("Failed to load PDF.js"));
-    document.head.appendChild(script);
-  });
+  return Promise.resolve(pdfjsLib);
 };
 
-/**
- * processPDF(file, documentId)
- * - Reads the file once
- * - Creates a storedBuffer (ArrayBuffer) that is never passed to workers
- * - Creates a workerBuffer clone to pass to pdf.js (it may be detached)
- * - Stores storedBuffer in pdfBufferStore under documentId
- * - Returns metadata and storedBuffer
- */
 export const processPDF = async (file, documentId) => {
   if (!file) throw new Error("No file provided to processPDF");
   if (!documentId) throw new Error("documentId is required for processPDF");
@@ -58,8 +31,6 @@ export const processPDF = async (file, documentId) => {
 
   // persist safe buffer
   pdfBufferStore.set(documentId, storedBuffer);
-
-  const pdfjsLib = await loadPdfJs();
 
   // pass worker copy to pdf.js as a Uint8Array (worker may take ownership)
   const loadingTask = pdfjsLib.getDocument({
@@ -83,18 +54,13 @@ export const processPDF = async (file, documentId) => {
   }
 
   return {
-    arrayBuffer: storedBuffer, // safe copy for storage and re-use
+    arrayBuffer: storedBuffer,
     pages,
     pageCount,
     isBlankDocument: false,
   };
 };
 
-/**
- * renderPageToCanvas(arrayBufferOrView, pageNumber, targetCanvas)
- * - Accepts: stored ArrayBuffer (preferred) or a TypedArray view
- * - Creates a fresh clone before passing to pdf.js to avoid DataCloneError
- */
 export const renderPageToCanvas = async (
   arrayBufferOrView,
   pageNumber,
@@ -103,7 +69,6 @@ export const renderPageToCanvas = async (
   try {
     if (!arrayBufferOrView)
       throw new Error("No arrayBuffer provided to renderPageToCanvas");
-    const pdfjsLib = await loadPdfJs();
 
     let workerUint8;
 

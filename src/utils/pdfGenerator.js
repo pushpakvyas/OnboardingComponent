@@ -1,7 +1,13 @@
 import { PDFDocument, rgb } from "pdf-lib";
+import * as pdfjsLib from "pdfjs-dist";
 import { A4_WIDTH } from "../constants/layoutConstants";
-import { loadPdfJs } from "./pdfProcessor";
 import { pdfBufferStore } from "./pdfBufferStore";
+
+// Configure worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.mjs",
+  import.meta.url
+).toString();
 
 const PDF_A4_WIDTH = 595.28;
 const PDF_A4_HEIGHT = 841.89;
@@ -182,7 +188,6 @@ export const generatePDFWithData = async (
       throw new Error("No pages found");
     }
 
-    const pdfjsLib = await loadPdfJs();
     const pdfDoc = await PDFDocument.create();
 
     const buffer = pdfBufferStore.get(doc.id);
