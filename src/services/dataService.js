@@ -9,7 +9,15 @@ const localStorageAdapter = {
       const saved = localStorage.getItem(localStorageAdapter.DOCUMENTS_KEY);
       if (!saved) return [];
       const data = JSON.parse(saved);
-      return Array.isArray(data.documents) ? data.documents : [];
+      const restored = data.documents.map((doc) => {
+        if (doc.bufferBytes) {
+          doc.arrayBuffer = new Uint8Array(doc.bufferBytes).buffer;
+          delete doc.bufferBytes;
+        }
+        return doc;
+      });
+
+      return restored;
     } catch (err) {
       console.error("Error loading documents:", err);
       return [];
@@ -19,9 +27,23 @@ const localStorageAdapter = {
   saveDocuments: async (documents) => {
     try {
       const data = { documents, lastUpdated: new Date().toISOString() };
+      const safeDocs = data.documents.map((doc) => {
+        if (doc.arrayBuffer instanceof ArrayBuffer) {
+          return {
+            ...doc,
+            bufferBytes: Array.from(new Uint8Array(doc.arrayBuffer)),
+            arrayBuffer: undefined,
+          };
+        }
+        return doc;
+      });
+
       localStorage.setItem(
         localStorageAdapter.DOCUMENTS_KEY,
-        JSON.stringify(data)
+        JSON.stringify({
+          ...data,
+          documents: safeDocs,
+        })
       );
       return { success: true };
     } catch (err) {
@@ -71,6 +93,13 @@ const localStorageAdapter = {
 
   addDocument: async (document) => {
     const documents = await localStorageAdapter.getDocuments();
+    if (document.arrayBuffer instanceof ArrayBuffer) {
+      document = {
+        ...document,
+        bufferBytes: Array.from(new Uint8Array(document.arrayBuffer)),
+        arrayBuffer: undefined,
+      };
+    }
     await localStorageAdapter.saveDocuments([...documents, document]);
     return { success: true, document };
   },
@@ -140,6 +169,14 @@ const apiAdapter = {
   },
 
   updateDocument: async (id, updates) => {
+    if (updates.arrayBuffer instanceof ArrayBuffer) {
+      updates = {
+        ...updates,
+        bufferBytes: Array.from(new Uint8Array(updates.arrayBuffer)),
+        arrayBuffer: undefined,
+      };
+    }
+
     return await apiAdapter.request(`/documents/${id}`, {
       method: "PUT",
       body: JSON.stringify(updates),

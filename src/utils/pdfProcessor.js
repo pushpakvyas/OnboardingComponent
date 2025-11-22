@@ -44,6 +44,8 @@ export const processPDF = async (file, documentId) => {
   if (!documentId) throw new Error("documentId is required for processPDF");
 
   const original = await file.arrayBuffer();
+  console.log("original", original);
+
   if (!original || original.byteLength === 0) {
     throw new Error("Empty PDF file");
   }
