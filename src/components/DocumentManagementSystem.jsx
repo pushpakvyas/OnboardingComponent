@@ -189,7 +189,14 @@ const DocumentManagementSystem = () => {
       documentName: `${doc.documentName} (Copy)`,
       createdOn: new Date().toISOString(),
     };
-    addDocument(clonedDoc);
+
+    const originalIndex = documents.findIndex((d) => d.id === doc.id);
+
+    setDocuments((prev) => {
+      const newDocs = [...prev];
+      newDocs.splice(originalIndex + 1, 0, clonedDoc);
+      return newDocs;
+    });
   };
 
   const handleDownloadDocument = async (doc, userId = null) => {

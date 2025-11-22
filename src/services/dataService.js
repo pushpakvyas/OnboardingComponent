@@ -26,7 +26,7 @@ const localStorageAdapter = {
 
   saveDocuments: async (documents) => {
     try {
-      const data = { documents, lastUpdated: new Date().toISOString() };
+      const data = { documents };
       const safeDocs = data.documents.map((doc) => {
         if (doc.arrayBuffer instanceof ArrayBuffer) {
           return {
