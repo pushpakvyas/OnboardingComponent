@@ -1,3 +1,5 @@
+import { pdfBufferStore } from "../utils/pdfBufferStore";
+
 const BACKEND = false;
 
 const localStorageAdapter = {
@@ -11,7 +13,9 @@ const localStorageAdapter = {
       const data = JSON.parse(saved);
       const restored = data.documents.map((doc) => {
         if (doc.bufferBytes) {
-          doc.arrayBuffer = new Uint8Array(doc.bufferBytes).buffer;
+          const buffer = new Uint8Array(doc.bufferBytes).buffer;
+          doc.arrayBuffer = buffer;
+          pdfBufferStore.set(doc.id, buffer);
           delete doc.bufferBytes;
         }
         return doc;
