@@ -41,6 +41,19 @@ export const DraggableField = ({
     }
   }, [isDragging]);
 
+  // Define role colors
+  const getRoleColor = (role) => {
+    switch (role) {
+      case "initiator":
+        return "bg-green-100 text-green-700";
+      case "approver":
+        return "bg-purple-100 text-purple-700";
+      case "applicant":
+      default:
+        return "bg-blue-100 text-blue-700";
+    }
+  };
+
   return (
     <motion.div
       key={field.id}
@@ -65,11 +78,9 @@ export const DraggableField = ({
         </div>
         <div className="bg-transparent rounded p-2 min-w-max group relative">
           <div
-            className={`absolute -top-2 left-0 text-[10px] px-2 py-0.5 rounded ${
-              field.role === "approver"
-                ? "bg-purple-100 text-purple-700"
-                : "bg-blue-100 text-blue-700"
-            }`}
+            className={`absolute -top-2 left-0 text-[10px] px-2 py-0.5 rounded ${getRoleColor(
+              field.role || "applicant"
+            )}`}
           >
             {field.role || "applicant"}
           </div>

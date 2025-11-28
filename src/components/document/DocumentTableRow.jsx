@@ -8,6 +8,8 @@ import {
   Trash2,
   Send,
   CheckCircle,
+  UserPlus,
+  Settings,
 } from "lucide-react";
 
 export const DocumentTableRow = ({
@@ -20,7 +22,9 @@ export const DocumentTableRow = ({
   onShare,
   onApplicantFill,
   onApproverReview,
+  onInitiatorFill,
   onDownload,
+  onConfigApprovers,
 }) => {
   return (
     <tr
@@ -34,10 +38,11 @@ export const DocumentTableRow = ({
       <td className="px-4 py-3 text-sm">{doc.type}</td>
       <td className="px-4 py-3 text-sm">{doc.createdBy}</td>
       <td className="px-4 py-3 text-sm">
-        {new Date(doc.createdOn).toLocaleDateString()}
+        {doc.createdOn ? new Date(doc.createdOn).toLocaleDateString() : "-"}
       </td>
-      <td className="px-4 py-3">
+      <td className="px-4 py-3 text-sm">
         <div className="flex items-center gap-2">
+          {/* View */}
           <button
             onClick={() => onView(doc)}
             className="p-1 hover:bg-gray-200 rounded transition"
@@ -45,6 +50,8 @@ export const DocumentTableRow = ({
           >
             <Eye className="w-4 h-4 text-blue-600" />
           </button>
+
+          {/* Edit */}
           <button
             onClick={() => onEdit(doc)}
             className="p-1 hover:bg-gray-200 rounded transition"
@@ -53,12 +60,31 @@ export const DocumentTableRow = ({
             <Edit2 className="w-4 h-4 text-green-600" />
           </button>
           <button
+            onClick={() => onInitiatorFill(doc)}
+            className="p-1 hover:bg-gray-200 rounded transition"
+            title="Fill as Initiator"
+          >
+            <UserPlus className="w-4 h-4 text-teal-600" />
+          </button>
+
+          <button
+            onClick={() => onConfigApprovers(doc)}
+            className="p-1 hover:bg-yellow-200 rounded transition"
+            title="Configure Approvers"
+          >
+            <Settings className="w-4 h-4 text-yellow-700" />
+          </button>
+
+          {/* Share with Applicant */}
+          <button
             onClick={() => onShare(doc)}
             className="p-1 hover:bg-gray-200 rounded transition"
             title="Share with Applicant"
           >
             <Send className="w-4 h-4 text-indigo-600" />
           </button>
+
+          {/* Fill as Applicant */}
           <button
             onClick={() => onApplicantFill(doc)}
             className="p-1 hover:bg-gray-200 rounded transition"
@@ -66,6 +92,8 @@ export const DocumentTableRow = ({
           >
             <Edit3 className="w-4 h-4 text-orange-600" />
           </button>
+
+          {/* Review as Approver */}
           <button
             onClick={() => onApproverReview(doc)}
             className="p-1 hover:bg-gray-200 rounded transition"
@@ -73,6 +101,10 @@ export const DocumentTableRow = ({
           >
             <CheckCircle className="w-4 h-4 text-purple-600" />
           </button>
+
+          {/* NEW: Fill as Initiator */}
+
+          {/* Download */}
           <button
             onClick={() => onDownload(doc)}
             className="p-1 hover:bg-gray-200 rounded transition"
@@ -80,6 +112,8 @@ export const DocumentTableRow = ({
           >
             <Download className="w-4 h-4 text-purple-600" />
           </button>
+
+          {/* Clone */}
           <button
             onClick={() => onClone(doc)}
             className="p-1 hover:bg-gray-200 rounded transition"
@@ -87,6 +121,8 @@ export const DocumentTableRow = ({
           >
             <Copy className="w-4 h-4 text-indigo-600" />
           </button>
+
+          {/* Delete */}
           <button
             onClick={() => onDelete(doc.id)}
             className="p-1 hover:bg-gray-200 rounded transition"

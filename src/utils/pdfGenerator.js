@@ -3,11 +3,12 @@ import * as pdfjsLib from "pdfjs-dist";
 import { A4_WIDTH } from "../constants/layoutConstants";
 import { pdfBufferStore } from "./pdfBufferStore";
 
-// Configure worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.mjs",
-  import.meta.url
-).toString();
+import workerSrc from "pdfjs-dist/build/pdf.worker.min.js?url";
+
+// Configure worker with correct path
+if (typeof window !== "undefined") {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+}
 
 const PDF_A4_WIDTH = 595.28;
 const PDF_A4_HEIGHT = 841.89;

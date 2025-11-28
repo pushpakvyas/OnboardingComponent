@@ -34,6 +34,7 @@ export const DocumentFieldConfig = ({ field, onUpdate, onClose }) => {
               onChange={(e) => onUpdate(field.id, "role", e.target.value)}
               className="w-full px-2 py-1 border rounded text-sm"
             >
+              <option value="initiator">Initiator</option>
               <option value="applicant">Applicant</option>
               <option value="approver">Approver</option>
             </select>

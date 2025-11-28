@@ -5,11 +5,10 @@ import { CanvasPageRenderer } from "../document/CanvasPageRenderer";
 import { A4_WIDTH, A4_HEIGHT } from "../../constants/layoutConstants";
 import { pdfBufferStore } from "../../utils/pdfBufferStore";
 
-export const ApplicantFillView = ({
+export const InitiatorFillView = ({
   document,
   userId,
   userFieldData = {},
-  initiatorData = {},
   onUpdateField,
   onSave,
   onBack,
@@ -17,17 +16,18 @@ export const ApplicantFillView = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [validationErrors, setValidationErrors] = useState([]);
 
+  // Get PDF buffer from in-memory store
   const pdfBuffer = pdfBufferStore.get(document.id);
 
-  // Get all applicant fields across pages
-  const getAllApplicantFields = () => {
+  // Get all initiator fields across all pages
+  const getAllInitiatorFields = () => {
     const allFields = [];
     if (!document.droppedFields) return allFields;
 
     Object.keys(document.droppedFields).forEach((pageNum) => {
       const pageFields =
         document.droppedFields[pageNum]?.filter(
-          (f) => f.role === "applicant"
+          (f) => f.role === "initiator"
         ) || [];
       allFields.push(...pageFields);
     });
@@ -35,11 +35,12 @@ export const ApplicantFillView = ({
     return allFields;
   };
 
+  // Validate all required initiator fields
   const validateFields = () => {
     const errors = [];
-    const allApplicantFields = getAllApplicantFields();
+    const allInitiatorFields = getAllInitiatorFields();
 
-    allApplicantFields.forEach((field) => {
+    allInitiatorFields.forEach((field) => {
       if (field.required) {
         const value = userFieldData?.[field.id];
         if (!value || String(value).trim() === "") {
@@ -60,13 +61,14 @@ export const ApplicantFillView = ({
     if (errors.length > 0) {
       setValidationErrors(errors);
       alert(
-        "Please fill all required applicant fields:\n" +
+        "Please fill all required initiator fields:\n" +
           errors
             .slice(0, 5)
             .map((e) => `${e.label} (Page ${e.page})`)
             .join("\n")
       );
 
+      // Navigate to first error page
       if (errors[0]?.page) {
         setCurrentPage(errors[0].page);
       }
@@ -77,18 +79,11 @@ export const ApplicantFillView = ({
     onSave();
   };
 
-  // Applicant fields only on current page
-  const applicantFields =
-    document.droppedFields?.[currentPage]?.filter(
-      (f) => f.role === "applicant"
-    ) || [];
-
-  // Initiator fields read-only to show filled data
+  // Fields for the current page with role "initiator"
   const initiatorFields =
     document.droppedFields?.[currentPage]?.filter(
       (f) => f.role === "initiator"
     ) || [];
-  console.log("initiatorFields", initiatorFields);
 
   return (
     <div className="flex h-screen bg-gray-100">
@@ -105,7 +100,7 @@ export const ApplicantFillView = ({
             <div>
               <h2 className="text-xl font-semibold">{document.documentName}</h2>
               <p className="text-sm text-gray-500">
-                Applicant - Fill Form ({userId})
+                Initiator - Fill Form ({userId})
               </p>
             </div>
           </div>
@@ -119,7 +114,7 @@ export const ApplicantFillView = ({
           </button>
         </div>
 
-        {/* Validation errors */}
+        {/* Validation banner */}
         {validationErrors.length > 0 && (
           <div className="bg-red-50 border-b border-red-200 px-6 py-3 flex items-start gap-2">
             <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
@@ -141,7 +136,7 @@ export const ApplicantFillView = ({
           </div>
         )}
 
-        {/* Main content area */}
+        {/* Main content */}
         <div className="flex-1 overflow-auto p-8 flex justify-center">
           <div className="max-w-4xl w-full">
             {/* Page navigation */}
@@ -154,7 +149,7 @@ export const ApplicantFillView = ({
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <span className="text-sm font-medium">
-                Page {currentPage} of {document.pages?.length || 1}
+                Page {currentPage} of {document.pages?.length || 0 || 1}
               </span>
               <button
                 onClick={() =>
@@ -169,7 +164,7 @@ export const ApplicantFillView = ({
               </button>
             </div>
 
-            {/* PDF and fields */}
+            {/* PDF + Fields */}
             <div
               className="relative bg-white shadow-lg"
               style={{ width: `${A4_WIDTH}px`, height: `${A4_HEIGHT}px` }}
@@ -192,41 +187,38 @@ export const ApplicantFillView = ({
                 />
               </div>
 
+              {/* Fields Layer */}
               <div
                 style={{
                   position: "absolute",
                   inset: 0,
                   zIndex: 10,
-                  pointerEvents: "none",
-                  opacity: 0.7,
                 }}
               >
-                {initiatorFields.map((field) => (
-                  <FieldRenderer
-                    key={field.id}
-                    field={field}
-                    value={initiatorData?.[field.id]}
-                    onChange={() => {}}
-                    readOnly={true}
-                    role="initiator"
-                  />
-                ))}
-              </div>
-
-              <div style={{ position: "absolute", inset: 0, zIndex: 20 }}>
-                {applicantFields.map((field) => (
-                  <FieldRenderer
-                    key={field.id}
-                    field={field}
-                    value={userFieldData?.[field.id] || ""}
-                    onChange={(val) => {
-                      onUpdateField(field.id, val);
-                      // Clear validation errors if any
-                    }}
-                    readOnly={false}
-                    role="applicant"
-                  />
-                ))}
+                {initiatorFields.map((field) => {
+                  const hasError = validationErrors.some(
+                    (e) => e.fieldId === field.id
+                  );
+                  return (
+                    <div
+                      key={field.id}
+                      className={hasError ? "ring-2 ring-red-500 rounded" : ""}
+                    >
+                      <FieldRenderer
+                        field={field}
+                        value={userFieldData?.[field.id]}
+                        onChange={(val) => {
+                          onUpdateField(field.id, val);
+                          setValidationErrors((prev) =>
+                            prev.filter((e) => e.fieldId !== field.id)
+                          );
+                        }}
+                        readOnly={false}
+                        role="initiator"
+                      />
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

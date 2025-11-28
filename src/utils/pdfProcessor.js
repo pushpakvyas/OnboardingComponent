@@ -1,12 +1,12 @@
-// src/utils/pdfProcessor.js
-import * as pdfjsLib from "pdfjs-dist";
 import { pdfBufferStore } from "./pdfBufferStore";
+import * as pdfjsLib from "pdfjs-dist";
 
-// Configure worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.mjs",
-  import.meta.url
-).toString();
+import workerSrc from "pdfjs-dist/build/pdf.worker.min.js?url";
+
+// Configure worker with correct path
+if (typeof window !== "undefined") {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+}
 
 export const loadPdfJs = () => {
   return Promise.resolve(pdfjsLib);
@@ -17,7 +17,6 @@ export const processPDF = async (file, documentId) => {
   if (!documentId) throw new Error("documentId is required for processPDF");
 
   const original = await file.arrayBuffer();
-  console.log("original", original);
 
   if (!original || original.byteLength === 0) {
     throw new Error("Empty PDF file");

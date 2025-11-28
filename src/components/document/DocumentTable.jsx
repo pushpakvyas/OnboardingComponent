@@ -12,8 +12,10 @@ export const DocumentTable = ({
   onShare,
   onApplicantFill,
   onApproverReview,
+  onInitiatorFill,
   onDownload,
   onAddNew,
+  onConfigure,
 }) => {
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
@@ -30,20 +32,20 @@ export const DocumentTable = ({
     return (
       (!filters.documentName ||
         doc.documentName
-          .toLowerCase()
+          ?.toLowerCase()
           .includes(filters.documentName.toLowerCase())) &&
       (!filters.referenceId ||
         doc.referenceId
-          .toLowerCase()
+          ?.toLowerCase()
           .includes(filters.referenceId.toLowerCase())) &&
       (!filters.category || doc.category === filters.category) &&
       (!filters.type || doc.type === filters.type) &&
       (!filters.createdBy ||
-        doc.createdBy.toLowerCase().includes(filters.createdBy.toLowerCase()))
+        doc.createdBy?.toLowerCase().includes(filters.createdBy.toLowerCase()))
     );
   });
 
-  const totalPages = Math.ceil(filteredDocuments.length / rowsPerPage);
+  const totalPages = Math.ceil(filteredDocuments.length / rowsPerPage) || 1;
   const paginatedDocuments = filteredDocuments.slice(
     (currentPage - 1) * rowsPerPage,
     currentPage * rowsPerPage
@@ -51,7 +53,15 @@ export const DocumentTable = ({
 
   return (
     <div className="flex-1 flex flex-col p-6">
-      <div className="flex items-center justify-end mb-4 gap-4">
+      <div className="flex items-center justify-between mb-4 gap-4">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowFilters((prev) => !prev)}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            {showFilters ? "Hide Filters" : "Show Filters"}
+          </button>
+        </div>
         <button
           onClick={onAddNew}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
@@ -94,25 +104,28 @@ export const DocumentTable = ({
               </tr>
             </thead>
             <tbody>
-              {paginatedDocuments.map((doc, index) => (
-                <DocumentTableRow
-                  key={doc.id}
-                  doc={doc}
-                  index={index}
-                  onView={onView}
-                  onEdit={onEdit}
-                  onDelete={onDelete}
-                  onClone={onClone}
-                  onShare={onShare}
-                  onApplicantFill={onApplicantFill}
-                  onApproverReview={onApproverReview}
-                  onDownload={onDownload}
-                />
-              ))}
-              {paginatedDocuments.length === 0 && (
+              {paginatedDocuments.length > 0 ? (
+                paginatedDocuments.map((doc, index) => (
+                  <DocumentTableRow
+                    key={doc.id}
+                    doc={doc}
+                    index={index}
+                    onView={onView}
+                    onEdit={onEdit}
+                    onDelete={onDelete}
+                    onClone={onClone}
+                    onShare={onShare}
+                    onApplicantFill={onApplicantFill}
+                    onApproverReview={onApproverReview}
+                    onInitiatorFill={onInitiatorFill}
+                    onDownload={onDownload}
+                    onConfigApprovers={onConfigure}
+                  />
+                ))
+              ) : (
                 <tr>
                   <td
-                    colSpan="7"
+                    colSpan={7}
                     className="px-4 py-8 text-center text-gray-500"
                   >
                     No documents found. Click "Add New Document" to create one.
@@ -122,6 +135,32 @@ export const DocumentTable = ({
             </tbody>
           </table>
         </div>
+
+        {filteredDocuments.length > rowsPerPage && (
+          <div className="flex items-center justify-between px-4 py-3 border-t text-sm">
+            <span>
+              Page {currentPage} of {totalPages}
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 border rounded disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                }
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 border rounded disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -26,6 +26,12 @@ export const FIELD_DEFAULTS = {
   required: false,
 };
 
+export const FIELD_ROLES = {
+  INITIATOR: "initiator",
+  APPLICANT: "applicant",
+  APPROVER: "approver",
+};
+
 export const FIELD_TYPE_CONFIG = {
   text: { placeholder: "Text input", height: 30 },
   name: { placeholder: "Name", height: 30 },

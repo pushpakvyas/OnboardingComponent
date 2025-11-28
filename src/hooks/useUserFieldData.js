@@ -6,12 +6,12 @@ export const useUserFieldData = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Load user field data on mount
   useEffect(() => {
     const loadUserFieldData = async () => {
       try {
         setLoading(true);
         const data = await dataService.getUserFieldData();
+
         setUserFieldData(data);
         setError(null);
       } catch (err) {
@@ -21,16 +21,17 @@ export const useUserFieldData = () => {
         setLoading(false);
       }
     };
-
     loadUserFieldData();
   }, []);
 
-  // Save user field data whenever it changes
   useEffect(() => {
     if (!loading) {
       const saveUserFieldData = async () => {
         try {
+          console.log("userFieldData", userFieldData);
+
           await dataService.saveUserFieldData(userFieldData);
+          console.log("stored successfully");
         } catch (err) {
           console.error("Error saving user field data:", err);
           setError(err.message);
@@ -88,9 +89,11 @@ export const useUserFieldData = () => {
     });
   };
 
+  // Fix here: Return userIds where status === "applicant-submitted"
   const getSubmittedApplicants = (documentId) => {
     return Object.keys(userFieldData[documentId] || {}).filter(
-      (userId) => userFieldData[documentId][userId].status === "submitted"
+      (userId) =>
+        userFieldData[documentId][userId].status === "applicant-submitted"
     );
   };
 

@@ -55,6 +55,8 @@ const localStorageAdapter = {
   getUserFieldData: async () => {
     try {
       const saved = localStorage.getItem(localStorageAdapter.USER_DATA_KEY);
+      console.log("test", JSON.parse(saved));
+
       return saved ? JSON.parse(saved) : {};
     } catch (err) {
       console.error("Error loading user field data:", err);
