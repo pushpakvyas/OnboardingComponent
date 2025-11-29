@@ -8,6 +8,9 @@ function getStore() {
   return _store;
 }
 
+// Add to pdfBufferStore.js:
+pdfBufferStore.clear = () => pdfBufferStore.clear();
+
 // export const pdfBufferStore = {
 //   set(id, buffer) {
 //     if (!id) return;

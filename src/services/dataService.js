@@ -1,3 +1,4 @@
+// src/services/dataService.js
 import { pdfBufferStore } from "../utils/pdfBufferStore";
 
 const BACKEND = false;
@@ -11,16 +12,21 @@ const localStorageAdapter = {
       const saved = localStorage.getItem(localStorageAdapter.DOCUMENTS_KEY);
       if (!saved) return [];
       const data = JSON.parse(saved);
+      
+      // Restore buffers to pdfBufferStore
       const restored = data.documents.map((doc) => {
-        if (doc.bufferBytes) {
+        if (doc.bufferBytes && Array.isArray(doc.bufferBytes)) {
           const buffer = new Uint8Array(doc.bufferBytes).buffer;
-          doc.arrayBuffer = buffer;
           pdfBufferStore.set(doc.id, buffer);
-          delete doc.bufferBytes;
+          // Keep arrayBuffer in document object for compatibility
+          doc.arrayBuffer = buffer;
         }
         return doc;
       });
 
+      console.log('📁 Loaded documents:', restored.length);
+      console.log('🗂️ Buffer store has keys:', Array.from(pdfBufferStore.keys()));
+      
       return restored;
     } catch (err) {
       console.error("Error loading documents:", err);
@@ -30,25 +36,40 @@ const localStorageAdapter = {
 
   saveDocuments: async (documents) => {
     try {
-      const data = { documents };
-      const safeDocs = data.documents.map((doc) => {
-        if (doc.arrayBuffer instanceof ArrayBuffer) {
-          return {
-            ...doc,
-            bufferBytes: Array.from(new Uint8Array(doc.arrayBuffer)),
-            arrayBuffer: undefined,
-          };
+      // Convert ArrayBuffers to arrays for storage
+      const safeDocs = documents.map((doc) => {
+        const safeDoc = { ...doc };
+        
+        // Check if buffer exists in pdfBufferStore
+        const buffer = pdfBufferStore.get(doc.id);
+        
+        if (buffer instanceof ArrayBuffer && buffer.byteLength > 0) {
+          safeDoc.bufferBytes = Array.from(new Uint8Array(buffer));
+          console.log(`💾 Saving buffer for doc ${doc.id}: ${buffer.byteLength} bytes`);
+        } else if (doc.arrayBuffer instanceof ArrayBuffer && doc.arrayBuffer.byteLength > 0) {
+          // Fallback to doc.arrayBuffer if not in store
+          safeDoc.bufferBytes = Array.from(new Uint8Array(doc.arrayBuffer));
+          pdfBufferStore.set(doc.id, doc.arrayBuffer); // Store it
+          console.log(`💾 Saving buffer from doc.arrayBuffer ${doc.id}: ${doc.arrayBuffer.byteLength} bytes`);
         }
-        return doc;
+        
+        // Remove arrayBuffer to avoid storage issues
+        delete safeDoc.arrayBuffer;
+        
+        return safeDoc;
       });
+
+      const dataToSave = {
+        documents: safeDocs,
+        lastUpdated: new Date().toISOString()
+      };
 
       localStorage.setItem(
         localStorageAdapter.DOCUMENTS_KEY,
-        JSON.stringify({
-          ...data,
-          documents: safeDocs,
-        })
+        JSON.stringify(dataToSave)
       );
+      
+      console.log('✅ Saved documents to localStorage');
       return { success: true };
     } catch (err) {
       console.error("Error saving documents:", err);
@@ -59,9 +80,9 @@ const localStorageAdapter = {
   getUserFieldData: async () => {
     try {
       const saved = localStorage.getItem(localStorageAdapter.USER_DATA_KEY);
-      console.log("test", JSON.parse(saved));
-
-      return saved ? JSON.parse(saved) : {};
+      const data = saved ? JSON.parse(saved) : {};
+      console.log('📋 Loaded user field data:', Object.keys(data).length, 'documents');
+      return data;
     } catch (err) {
       console.error("Error loading user field data:", err);
       return {};
@@ -74,6 +95,7 @@ const localStorageAdapter = {
         localStorageAdapter.USER_DATA_KEY,
         JSON.stringify(data)
       );
+      console.log('✅ Saved user field data');
       return { success: true };
     } catch (err) {
       console.error("Error saving user field data:", err);
@@ -84,28 +106,38 @@ const localStorageAdapter = {
   deleteDocument: async (id) => {
     const documents = await localStorageAdapter.getDocuments();
     const filtered = documents.filter((doc) => doc.id !== id);
+    
+    // Remove from buffer store
+    pdfBufferStore.delete(id);
+    
     await localStorageAdapter.saveDocuments(filtered);
     return { success: true };
   },
 
   updateDocument: async (id, updates) => {
     const documents = await localStorageAdapter.getDocuments();
+    
+    // If updates contain arrayBuffer, store it
+    if (updates.arrayBuffer instanceof ArrayBuffer) {
+      pdfBufferStore.set(id, updates.arrayBuffer);
+    }
+    
     const updated = documents.map((doc) =>
       doc.id === id ? { ...doc, ...updates } : doc
     );
+    
     await localStorageAdapter.saveDocuments(updated);
     return { success: true };
   },
 
   addDocument: async (document) => {
     const documents = await localStorageAdapter.getDocuments();
+    
+    // Store buffer if present
     if (document.arrayBuffer instanceof ArrayBuffer) {
-      document = {
-        ...document,
-        bufferBytes: Array.from(new Uint8Array(document.arrayBuffer)),
-        arrayBuffer: undefined,
-      };
+      pdfBufferStore.set(document.id, document.arrayBuffer);
     }
+    
     await localStorageAdapter.saveDocuments([...documents, document]);
     return { success: true, document };
   },
@@ -114,6 +146,10 @@ const localStorageAdapter = {
     try {
       localStorage.removeItem(localStorageAdapter.DOCUMENTS_KEY);
       localStorage.removeItem(localStorageAdapter.USER_DATA_KEY);
+      
+      // Clear buffer store
+      pdfBufferStore.clear();
+      
       return { success: true };
     } catch (err) {
       return { success: false, error: err.message };
@@ -254,3 +290,4 @@ export const dataService = {
 };
 
 export { localStorageAdapter, apiAdapter, BACKEND };
+
