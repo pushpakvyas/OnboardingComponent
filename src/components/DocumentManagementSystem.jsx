@@ -30,7 +30,7 @@ const DocumentManagementSystem = () => {
   ]);
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef(null);
-
+  const [workflowTargetDoc, setWorkflowTargetDoc] = useState(null);
   const [currentUserId, setCurrentUserId] = useState("");
   const [currentUserRole, setCurrentUserRole] = useState("");
   const [selectedApplicant, setSelectedApplicant] = useState("");
@@ -105,6 +105,7 @@ const DocumentManagementSystem = () => {
     setWorkflows([{ initiator: "", applicant: "", approvers: "" }]);
     setIsProcessing(false);
     setTempDocumentData(null);
+    setWorkflowTargetDoc(null); // NEW
   };
 
   const handleFileProcess = (file, pdfData = null) => {
@@ -137,15 +138,36 @@ const DocumentManagementSystem = () => {
       }
       setDrawerStep("workflow");
     } else if (drawerStep === "workflow") {
-      handleSaveFromDrawer(documentForm, workflows);
+      handleSaveFromDrawer(documentForm, workflows); // handles both new & existing
     }
   };
 
   const handleSkipWorkflow = () => {
+    if (workflowTargetDoc) {
+      resetDrawerState();
+      setDrawerOpen(false);
+      return;
+    }
+
     handleSaveFromDrawer(documentForm, []);
   };
 
   const handleSaveFromDrawer = (documentForm, workflows) => {
+    // 1) Updating an existing document's workflow
+    if (workflowTargetDoc) {
+      updateDocument(workflowTargetDoc.id, {
+        workflows: workflows || [],
+        toBeFilledBy:
+          documentForm.toBeFilledBy || workflowTargetDoc.toBeFilledBy,
+      });
+
+      resetDrawerState();
+      setDrawerOpen(false);
+      setView("table");
+      return;
+    }
+
+    // 2) Creating new document
     let docId;
     if (tempDocumentData?.tempId) {
       docId = tempDocumentData.tempId;
@@ -458,9 +480,35 @@ const DocumentManagementSystem = () => {
     );
   };
 
-  const handleConfigureWorkflow = () => {
+  const handleConfigureWorkflow = (doc) => {
+    if (doc) {
+      setWorkflowTargetDoc(doc);
+      setDocumentForm({
+        toBeFilledBy: doc.toBeFilledBy || "applicant",
+        documentName: doc.documentName || "",
+        category: doc.category || "",
+        type: doc.type || "",
+        description: doc.description || "",
+      });
+      setWorkflows(
+        doc.workflows && doc.workflows.length > 0
+          ? doc.workflows
+          : [{ initiator: "", applicant: "", approvers: "" }]
+      );
+      setDrawerStep("workflow");
+    } else {
+      setWorkflowTargetDoc(null);
+      setDocumentForm({
+        toBeFilledBy: "applicant",
+        documentName: "",
+        category: "",
+        type: "",
+        description: "",
+      });
+      setWorkflows([{ initiator: "", applicant: "", approvers: "" }]);
+      setDrawerStep("initial");
+    }
     setDrawerOpen(true);
-    setDrawerStep("workflow");
   };
 
   if (loading) {
@@ -496,7 +544,7 @@ const DocumentManagementSystem = () => {
           onApproverReview={handleApproverReview}
           onInitiatorFill={handleInitiatorFill}
           onDownload={handleDownloadDocument}
-          onAddNew={() => setDrawerOpen(true)}
+          onAddNew={() => handleConfigureWorkflow(null)}
           onConfigure={handleConfigureWorkflow}
         />
       )}
@@ -611,6 +659,7 @@ const DocumentManagementSystem = () => {
         onProceed={handleDrawerProceed}
         onSkipWorkflow={handleSkipWorkflow}
         setIsProcessing={setIsProcessing}
+        workflowTargetDoc={workflowTargetDoc}
       />
     </div>
   );

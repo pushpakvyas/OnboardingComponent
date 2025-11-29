@@ -21,6 +21,7 @@ const DocumentDrawer = ({
   onProceed,
   onSkipWorkflow,
   setIsProcessing,
+  workflowTargetDoc,
 }) => {
   const handleFileUpload = async (file) => {
     if (!file) return;
@@ -163,21 +164,24 @@ const DocumentDrawer = ({
             Cancel
           </button>
           <div className="flex gap-2">
-            {step === "workflow" && (
+            {step === "workflow" && !workflowTargetDoc && (
               <button
                 onClick={onSkipWorkflow}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors font-medium"
+                className="px-3 py-1 text-sm border rounded hover:bg-gray-100"
               >
-                Skip
+                Skip Workflow
               </button>
             )}
             {step !== "initial" && (
               <button
                 onClick={onProceed}
-                disabled={isProcessing}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium"
+                className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
               >
-                {isProcessing ? "Processing..." : "Proceed"}
+                {isProcessing
+                  ? "Processing..."
+                  : workflowTargetDoc && step === "workflow"
+                  ? "Save"
+                  : "Proceed"}
               </button>
             )}
           </div>

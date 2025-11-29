@@ -41,6 +41,8 @@ export const ApproverReviewView = ({
       (f) => f.role === "initiator"
     ) || [];
 
+  console.log("initiatorFields", initiatorFields);
+
   // Applicant read-only fields on current page
   const applicantFields =
     (document.droppedFields?.[currentPage] || []).filter(
